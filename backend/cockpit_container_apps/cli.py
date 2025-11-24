@@ -26,7 +26,12 @@ Example Usage:
 import sys
 from typing import Any, NoReturn
 
-from cockpit_container_apps.commands import list_categories, list_stores
+from cockpit_container_apps.commands import (
+    filter_packages,
+    list_categories,
+    list_packages_by_category,
+    list_stores,
+)
 from cockpit_container_apps.vendor.cockpit_apt_utils.errors import APTBridgeError, format_error
 from cockpit_container_apps.vendor.cockpit_apt_utils.formatters import to_json
 
@@ -37,15 +42,21 @@ def print_usage() -> None:
 Usage: cockpit-container-apps <command> [arguments]
 
 Commands:
-  version                           Show version information
-  list-stores                       List available container app stores
-  list-categories [--store ID]      List all categories (auto-discovered from tags)
+  version                               Show version information
+  list-stores                           List available container app stores
+  list-categories [--store ID]          List all categories (auto-discovered from tags)
+  list-packages-by-category CATEGORY [--store ID]
+                                        List all packages in a category
+  filter-packages [OPTIONS]             Filter packages by store, repo, tab, search, limit
+                                        OPTIONS: [--store ID] [--repo ID] [--tab TAB]
+                                                 [--search QUERY] [--limit N]
 
 Examples:
   cockpit-container-apps version
   cockpit-container-apps list-stores
-  cockpit-container-apps list-categories
   cockpit-container-apps list-categories --store marine
+  cockpit-container-apps list-packages-by-category navigation --store marine
+  cockpit-container-apps filter-packages --store marine --tab installed --limit 50
 """
     print(usage, file=sys.stderr)
 
@@ -103,6 +114,88 @@ def main() -> NoReturn:
                         code="INVALID_ARGUMENTS",
                     )
             result = list_categories.execute(store_id)
+
+        elif command == "list-packages-by-category":
+            if len(sys.argv) < 3:
+                raise APTBridgeError(
+                    "List-packages-by-category command requires a category ID argument",
+                    code="INVALID_ARGUMENTS",
+                )
+            category_id = sys.argv[2]
+            # Optional --store parameter
+            store_id = None
+            if len(sys.argv) > 3:
+                if sys.argv[3] == "--store":
+                    if len(sys.argv) < 5:
+                        raise APTBridgeError(
+                            "List-packages-by-category --store requires a store ID",
+                            code="INVALID_ARGUMENTS",
+                        )
+                    store_id = sys.argv[4]
+                else:
+                    raise APTBridgeError(
+                        f"Unknown parameter: {sys.argv[3]}",
+                        code="INVALID_ARGUMENTS",
+                    )
+            result = list_packages_by_category.execute(category_id, store_id)
+
+        elif command == "filter-packages":
+            # Parse optional parameters
+            store_id = None
+            repository_id = None
+            tab = None
+            search_query = None
+            limit = 1000
+
+            i = 2
+            while i < len(sys.argv):
+                if sys.argv[i] == "--store":
+                    if i + 1 >= len(sys.argv):
+                        raise APTBridgeError("--store requires a value", code="INVALID_ARGUMENTS")
+                    store_id = sys.argv[i + 1]
+                    i += 2
+                elif sys.argv[i] == "--repo":
+                    if i + 1 >= len(sys.argv):
+                        raise APTBridgeError("--repo requires a value", code="INVALID_ARGUMENTS")
+                    repository_id = sys.argv[i + 1]
+                    i += 2
+                elif sys.argv[i] == "--tab":
+                    if i + 1 >= len(sys.argv):
+                        raise APTBridgeError("--tab requires a value", code="INVALID_ARGUMENTS")
+                    tab = sys.argv[i + 1]
+                    i += 2
+                elif sys.argv[i] == "--search":
+                    if i + 1 >= len(sys.argv):
+                        raise APTBridgeError("--search requires a value", code="INVALID_ARGUMENTS")
+                    search_query = sys.argv[i + 1]
+                    i += 2
+                elif sys.argv[i] == "--limit":
+                    if i + 1 >= len(sys.argv):
+                        raise APTBridgeError("--limit requires a value", code="INVALID_ARGUMENTS")
+                    try:
+                        limit = int(sys.argv[i + 1])
+                        if limit < 0:
+                            raise APTBridgeError(
+                                "--limit must be non-negative", code="INVALID_ARGUMENTS"
+                            )
+                    except ValueError:
+                        raise APTBridgeError(
+                            f"Invalid limit value: {sys.argv[i + 1]}", code="INVALID_ARGUMENTS"
+                        ) from None
+                    i += 2
+                else:
+                    raise APTBridgeError(
+                        f"Unknown filter-packages parameter: {sys.argv[i]}",
+                        code="INVALID_ARGUMENTS",
+                    )
+
+            result = filter_packages.execute(
+                store_id=store_id,
+                repository_id=repository_id,
+                tab=tab,
+                search_query=search_query,
+                limit=limit,
+            )
 
         elif command in ("--help", "-h", "help"):
             print_usage()
