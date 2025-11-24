@@ -26,7 +26,7 @@ Example Usage:
 import sys
 from typing import Any, NoReturn
 
-from cockpit_container_apps.commands import list_stores
+from cockpit_container_apps.commands import list_categories, list_stores
 from cockpit_container_apps.vendor.cockpit_apt_utils.errors import APTBridgeError, format_error
 from cockpit_container_apps.vendor.cockpit_apt_utils.formatters import to_json
 
@@ -39,10 +39,13 @@ Usage: cockpit-container-apps <command> [arguments]
 Commands:
   version                           Show version information
   list-stores                       List available container app stores
+  list-categories [--store ID]      List all categories (auto-discovered from tags)
 
 Examples:
   cockpit-container-apps version
   cockpit-container-apps list-stores
+  cockpit-container-apps list-categories
+  cockpit-container-apps list-categories --store marine
 """
     print(usage, file=sys.stderr)
 
@@ -77,6 +80,29 @@ def main() -> NoReturn:
 
         elif command == "list-stores":
             result = list_stores.execute()
+
+        elif command == "list-categories":
+            # Optional --store parameter
+            store_id = None
+            if len(sys.argv) > 2:
+                if sys.argv[2] == "--store":
+                    if len(sys.argv) < 4:
+                        raise APTBridgeError(
+                            "List-categories --store requires a store ID",
+                            code="INVALID_ARGUMENTS",
+                        )
+                    store_id = sys.argv[3]
+                    if len(sys.argv) > 4:
+                        raise APTBridgeError(
+                            f"Unexpected argument: {sys.argv[4]}",
+                            code="INVALID_ARGUMENTS",
+                        )
+                else:
+                    raise APTBridgeError(
+                        f"Unknown parameter: {sys.argv[2]}",
+                        code="INVALID_ARGUMENTS",
+                    )
+            result = list_categories.execute(store_id)
 
         elif command in ("--help", "-h", "help"):
             print_usage()
