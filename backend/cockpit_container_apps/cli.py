@@ -1,89 +1,248 @@
 """
 Command-line interface for cockpit-container-apps.
 
-This module provides the main entry point for the cockpit-container-apps CLI.
-It parses command-line arguments, routes to appropriate command handlers,
-and formats output as JSON.
-
-Usage:
-    cockpit-container-apps <command> [options]
+This module provides the main entry point for the cockpit-container-apps CLI tool.
+It parses command-line arguments and dispatches to appropriate command handlers,
+handling errors and formatting output as JSON.
 
 Commands:
-    version     Show version information
-    list-stores List available container app stores
-    list-apps   List apps in a store
+    version                           - Show version information
+    list-stores                       - List available container app stores
 
-All output is formatted as JSON for consumption by the Cockpit frontend.
+Exit Codes:
+    0 - Success
+    1 - Expected error (validation, package not found, etc.)
+    2 - Unexpected error
+
+Output Format:
+    - Success: JSON to stdout, exit 0
+    - Error: JSON error to stderr, exit non-zero
+
+Example Usage:
+    $ cockpit-container-apps version
+    $ cockpit-container-apps list-stores
 """
 
-import argparse
-import json
 import sys
 from typing import Any, NoReturn
 
+from cockpit_container_apps.commands import (
+    filter_packages,
+    install,
+    list_categories,
+    list_packages_by_category,
+    list_stores,
+    remove,
+)
 from cockpit_container_apps.vendor.cockpit_apt_utils.errors import APTBridgeError, format_error
+from cockpit_container_apps.vendor.cockpit_apt_utils.formatters import to_json
 
 
-def cmd_version(_args: argparse.Namespace) -> dict[str, Any]:
+def print_usage() -> None:
+    """Print usage information to stderr."""
+    usage = """
+Usage: cockpit-container-apps <command> [arguments]
+
+Commands:
+  version                               Show version information
+  list-stores                           List available container app stores
+  list-categories [--store ID]          List all categories (auto-discovered from tags)
+  list-packages-by-category CATEGORY [--store ID]
+                                        List all packages in a category
+  filter-packages [OPTIONS]             Filter packages by store, repo, tab, search, limit
+                                        OPTIONS: [--store ID] [--repo ID] [--tab TAB]
+                                                 [--search QUERY] [--limit N]
+  install PACKAGE                       Install a package (with progress)
+  remove PACKAGE                        Remove a package (with progress)
+
+Examples:
+  cockpit-container-apps version
+  cockpit-container-apps list-stores
+  cockpit-container-apps list-categories --store marine
+  cockpit-container-apps list-packages-by-category navigation --store marine
+  cockpit-container-apps filter-packages --store marine --tab installed --limit 50
+  cockpit-container-apps install cowsay
+  cockpit-container-apps remove cowsay
+"""
+    print(usage, file=sys.stderr)
+
+
+def cmd_version() -> dict[str, Any]:
     """Return version information."""
     from cockpit_container_apps import __version__
 
     return {"version": __version__, "name": "cockpit-container-apps"}
 
 
-def create_parser() -> argparse.ArgumentParser:
-    """Create the argument parser with all subcommands."""
-    parser = argparse.ArgumentParser(
-        prog="cockpit-container-apps",
-        description="Container app management backend for Cockpit",
-    )
-
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
-
-    # version command
-    subparsers.add_parser("version", help="Show version information")
-
-    # list-stores command (placeholder for future implementation)
-    subparsers.add_parser("list-stores", help="List available container app stores")
-
-    # list-apps command (placeholder for future implementation)
-    list_apps = subparsers.add_parser("list-apps", help="List apps in a store")
-    list_apps.add_argument("store", help="Store identifier")
-
-    return parser
-
-
 def main() -> NoReturn:
-    """Main entry point for the CLI."""
-    parser = create_parser()
-    args = parser.parse_args()
+    """
+    Main entry point for the CLI.
 
-    if not args.command:
-        parser.print_help()
-        sys.exit(1)
-
-    # Route to command handler
-    handlers: dict[str, Any] = {
-        "version": cmd_version,
-        # Future commands will be added here
-    }
-
+    Parses arguments, dispatches to command handler, and outputs JSON.
+    Exits with code 0 on success, non-zero on error.
+    """
     try:
-        handler = handlers.get(args.command)
-        if handler is None:
-            raise APTBridgeError(
-                f"Unknown command: {args.command}",
-                code="UNKNOWN_COMMAND",
+        # Parse command-line arguments
+        if len(sys.argv) < 2:
+            print_usage()
+            sys.exit(1)
+
+        command = sys.argv[1]
+
+        # Dispatch to command handler
+        result: dict[str, Any] | list[dict[str, Any]] | None = None
+
+        if command == "version":
+            result = cmd_version()
+
+        elif command == "list-stores":
+            result = list_stores.execute()
+
+        elif command == "list-categories":
+            # Optional --store parameter
+            store_id = None
+            if len(sys.argv) > 2:
+                if sys.argv[2] == "--store":
+                    if len(sys.argv) < 4:
+                        raise APTBridgeError(
+                            "List-categories --store requires a store ID",
+                            code="INVALID_ARGUMENTS",
+                        )
+                    store_id = sys.argv[3]
+                    if len(sys.argv) > 4:
+                        raise APTBridgeError(
+                            f"Unexpected argument: {sys.argv[4]}",
+                            code="INVALID_ARGUMENTS",
+                        )
+                else:
+                    raise APTBridgeError(
+                        f"Unknown parameter: {sys.argv[2]}",
+                        code="INVALID_ARGUMENTS",
+                    )
+            result = list_categories.execute(store_id)
+
+        elif command == "list-packages-by-category":
+            if len(sys.argv) < 3:
+                raise APTBridgeError(
+                    "List-packages-by-category command requires a category ID argument",
+                    code="INVALID_ARGUMENTS",
+                )
+            category_id = sys.argv[2]
+            # Optional --store parameter
+            store_id = None
+            if len(sys.argv) > 3:
+                if sys.argv[3] == "--store":
+                    if len(sys.argv) < 5:
+                        raise APTBridgeError(
+                            "List-packages-by-category --store requires a store ID",
+                            code="INVALID_ARGUMENTS",
+                        )
+                    store_id = sys.argv[4]
+                else:
+                    raise APTBridgeError(
+                        f"Unknown parameter: {sys.argv[3]}",
+                        code="INVALID_ARGUMENTS",
+                    )
+            result = list_packages_by_category.execute(category_id, store_id)
+
+        elif command == "filter-packages":
+            # Parse optional parameters
+            store_id = None
+            repository_id = None
+            tab = None
+            search_query = None
+            limit = 1000
+
+            i = 2
+            while i < len(sys.argv):
+                if sys.argv[i] == "--store":
+                    if i + 1 >= len(sys.argv):
+                        raise APTBridgeError("--store requires a value", code="INVALID_ARGUMENTS")
+                    store_id = sys.argv[i + 1]
+                    i += 2
+                elif sys.argv[i] == "--repo":
+                    if i + 1 >= len(sys.argv):
+                        raise APTBridgeError("--repo requires a value", code="INVALID_ARGUMENTS")
+                    repository_id = sys.argv[i + 1]
+                    i += 2
+                elif sys.argv[i] == "--tab":
+                    if i + 1 >= len(sys.argv):
+                        raise APTBridgeError("--tab requires a value", code="INVALID_ARGUMENTS")
+                    tab = sys.argv[i + 1]
+                    i += 2
+                elif sys.argv[i] == "--search":
+                    if i + 1 >= len(sys.argv):
+                        raise APTBridgeError("--search requires a value", code="INVALID_ARGUMENTS")
+                    search_query = sys.argv[i + 1]
+                    i += 2
+                elif sys.argv[i] == "--limit":
+                    if i + 1 >= len(sys.argv):
+                        raise APTBridgeError("--limit requires a value", code="INVALID_ARGUMENTS")
+                    try:
+                        limit = int(sys.argv[i + 1])
+                        if limit < 0:
+                            raise APTBridgeError(
+                                "--limit must be non-negative", code="INVALID_ARGUMENTS"
+                            )
+                    except ValueError:
+                        raise APTBridgeError(
+                            f"Invalid limit value: {sys.argv[i + 1]}", code="INVALID_ARGUMENTS"
+                        ) from None
+                    i += 2
+                else:
+                    raise APTBridgeError(
+                        f"Unknown filter-packages parameter: {sys.argv[i]}",
+                        code="INVALID_ARGUMENTS",
+                    )
+
+            result = filter_packages.execute(
+                store_id=store_id,
+                repository_id=repository_id,
+                tab=tab,
+                search_query=search_query,
+                limit=limit,
             )
 
-        result = handler(args)
-        print(json.dumps(result, indent=2))
+        elif command == "install":
+            if len(sys.argv) < 3:
+                raise APTBridgeError(
+                    "Install command requires a package name argument",
+                    code="INVALID_ARGUMENTS",
+                )
+            package_name = sys.argv[2]
+            result = install.execute(package_name)
+
+        elif command == "remove":
+            if len(sys.argv) < 3:
+                raise APTBridgeError(
+                    "Remove command requires a package name argument",
+                    code="INVALID_ARGUMENTS",
+                )
+            package_name = sys.argv[2]
+            result = remove.execute(package_name)
+
+        elif command in ("--help", "-h", "help"):
+            print_usage()
+            sys.exit(0)
+
+        else:
+            raise APTBridgeError(f"Unknown command: {command}", code="UNKNOWN_COMMAND")
+
+        # Output result as JSON to stdout (if not None)
+        # Commands that stream progress may print results themselves and return None
+        if result is not None:
+            print(to_json(result))
         sys.exit(0)
 
     except APTBridgeError as e:
+        # Expected errors - output formatted error to stderr
         print(format_error(e), file=sys.stderr)
         sys.exit(1)
+
     except Exception as e:
-        error = APTBridgeError(str(e), code="UNKNOWN_ERROR")
+        # Unexpected errors - output generic error to stderr
+        error = APTBridgeError(
+            f"Unexpected error: {str(e)}", code="INTERNAL_ERROR", details=type(e).__name__
+        )
         print(format_error(error), file=sys.stderr)
         sys.exit(2)
