@@ -3,6 +3,7 @@ Unit tests for install and remove commands.
 """
 
 from unittest.mock import MagicMock, patch
+
 import pytest
 
 from cockpit_container_apps.commands import install, remove
