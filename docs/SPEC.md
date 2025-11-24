@@ -109,17 +109,6 @@ The primary new feature: configure installed container apps through a web interf
 - Must work alongside cockpit-apt without conflicts
 - Must read store configurations in the same format as cockpit-apt previously used
 
-### Dependencies
-
-- **cockpit-apt-utils**: Shared Python utility library providing:
-  - Error handling classes
-  - JSON formatting utilities
-  - Input validation functions
-  - Store configuration loading
-  - Store filter matching logic
-  - Debtag parsing
-  - Repository metadata parsing
-
 ## Key Constraints
 
 ### Architectural Constraints
