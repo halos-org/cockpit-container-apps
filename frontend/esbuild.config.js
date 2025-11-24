@@ -1,47 +1,75 @@
 import * as esbuild from 'esbuild';
-import { copyFileSync, mkdirSync } from 'fs';
+import * as fs from 'fs';
 
-const isWatch = process.argv.includes('--watch');
+const production = process.env.NODE_ENV === 'production';
+const watch = process.argv.includes('--watch');
 
-/** @type {esbuild.BuildOptions} */
-const buildOptions = {
+const config = {
     entryPoints: ['src/index.tsx'],
     bundle: true,
-    outdir: 'dist',
+    outfile: 'dist/index.js',
     format: 'esm',
-    splitting: true,
-    sourcemap: true,
-    minify: !isWatch,
+    platform: 'browser',
     target: ['es2020'],
+    sourcemap: !production,
+    minify: production,
+
+    // External dependencies (provided by Cockpit)
+    external: ['cockpit'],
+
+    // Handle JSX
+    jsx: 'automatic',
+
+    // Handle CSS and assets
     loader: {
-        '.tsx': 'tsx',
-        '.ts': 'ts',
+        '.css': 'css',
+        '.woff': 'file',
+        '.woff2': 'file',
+        '.ttf': 'file',
+        '.eot': 'file',
+        '.svg': 'file',
+        '.png': 'file',
+        '.jpg': 'file',
     },
-    external: [],
-    define: {
-        'process.env.NODE_ENV': isWatch ? '"development"' : '"production"',
-    },
+
+    // Asset names
+    assetNames: '[name]',
+
+    plugins: [
+        {
+            name: 'copy-assets',
+            setup(build) {
+                build.onEnd(() => {
+                    // Ensure dist directory exists
+                    if (!fs.existsSync('dist')) {
+                        fs.mkdirSync('dist', { recursive: true });
+                    }
+
+                    // Copy static files
+                    const filesToCopy = [
+                        { from: 'src/index.html', to: 'dist/index.html' },
+                        { from: 'src/manifest.json', to: 'dist/manifest.json' },
+                    ];
+
+                    for (const { from, to } of filesToCopy) {
+                        if (fs.existsSync(from)) {
+                            fs.copyFileSync(from, to);
+                            console.log(`Copied: ${from} → ${to}`);
+                        }
+                    }
+
+                    console.log('Build complete!');
+                });
+            },
+        },
+    ],
 };
 
-async function build() {
-    // Ensure dist directory exists
-    mkdirSync('dist', { recursive: true });
-
-    // Copy static files
-    copyFileSync('src/index.html', 'dist/index.html');
-    copyFileSync('src/manifest.json', 'dist/manifest.json');
-
-    if (isWatch) {
-        const ctx = await esbuild.context(buildOptions);
-        await ctx.watch();
-        console.log('Watching for changes...');
-    } else {
-        await esbuild.build(buildOptions);
-        console.log('Build complete');
-    }
+// Run build
+if (watch) {
+    const ctx = await esbuild.context(config);
+    await ctx.watch();
+    console.log('Watching for changes...');
+} else {
+    await esbuild.build(config);
 }
-
-build().catch((err) => {
-    console.error(err);
-    process.exit(1);
-});

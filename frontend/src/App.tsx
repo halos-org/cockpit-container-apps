@@ -7,10 +7,7 @@ import {
     PageSection,
     Title,
     EmptyState,
-    EmptyStateVariant,
     EmptyStateBody,
-    EmptyStateHeader,
-    EmptyStateIcon,
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 
@@ -21,12 +18,11 @@ export function App(): React.ReactElement {
                 <Title headingLevel="h1" size="lg">Container Apps</Title>
             </PageSection>
             <PageSection>
-                <EmptyState variant={EmptyStateVariant.lg}>
-                    <EmptyStateHeader
-                        titleText="No Container Stores Installed"
-                        headingLevel="h4"
-                        icon={<EmptyStateIcon icon={CubesIcon} />}
-                    />
+                <EmptyState
+                    icon={CubesIcon}
+                    titleText="No Container Stores Installed"
+                    headingLevel="h4"
+                >
                     <EmptyStateBody>
                         Install a container app store package to browse and install container applications.
                     </EmptyStateBody>
