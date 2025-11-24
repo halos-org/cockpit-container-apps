@@ -2,8 +2,9 @@
 Pytest configuration and shared fixtures for cockpit-container-apps tests.
 """
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 
 @pytest.fixture

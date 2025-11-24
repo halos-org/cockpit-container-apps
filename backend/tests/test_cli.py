@@ -5,11 +5,9 @@ Verifies that the CLI correctly parses arguments and routes to handlers.
 """
 
 import json
+import os
 import subprocess
 import sys
-import os
-
-import pytest
 
 
 class TestCLIVersion:

@@ -6,8 +6,6 @@ Verifies that the vendored error classes and formatting functions work correctly
 
 import json
 
-import pytest
-
 from cockpit_container_apps.vendor.cockpit_apt_utils.errors import (
     APTBridgeError,
     CacheError,
@@ -37,9 +35,7 @@ class TestAPTBridgeError:
     def test_error_with_details(self):
         """Test creating an error with details."""
         error = APTBridgeError(
-            "Package not found",
-            code="PACKAGE_NOT_FOUND",
-            details="Package name: nginx"
+            "Package not found", code="PACKAGE_NOT_FOUND", details="Package name: nginx"
         )
         assert error.message == "Package not found"
         assert error.code == "PACKAGE_NOT_FOUND"
@@ -97,11 +93,7 @@ class TestFormatError:
 
     def test_format_error_with_details(self):
         """Test formatting an error with details as JSON."""
-        error = APTBridgeError(
-            "Failed",
-            code="TEST_CODE",
-            details="Additional info"
-        )
+        error = APTBridgeError("Failed", code="TEST_CODE", details="Additional info")
         result = format_error(error)
 
         parsed = json.loads(result)

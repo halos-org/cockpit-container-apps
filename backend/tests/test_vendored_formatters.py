@@ -6,8 +6,6 @@ Verifies that the formatters produce valid JSON output.
 
 import json
 
-import pytest
-
 from cockpit_container_apps.vendor.cockpit_apt_utils.formatters import (
     format_package,
     format_package_details,
