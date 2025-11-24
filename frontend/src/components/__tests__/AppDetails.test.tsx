@@ -51,7 +51,9 @@ describe('AppDetails', () => {
                 onBack={vi.fn()}
             />
         );
-        expect(screen.getByText('2.8.0')).toBeInTheDocument();
+        // Version appears in header badge and description list
+        const versions = screen.getAllByText('2.8.0');
+        expect(versions.length).toBeGreaterThan(0);
     });
 
     it('renders section', () => {
