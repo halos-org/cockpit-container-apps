@@ -55,20 +55,19 @@ describe('App', () => {
         expect(screen.getByRole('main')).toBeInTheDocument();
     });
 
-    it('renders page header with navigation tabs', async () => {
+    it('renders sidebar navigation', async () => {
         render(<App />);
 
-        // Should have navigation tabs
-        expect(screen.getByRole('tab', { name: /store/i })).toBeInTheDocument();
-        expect(screen.getByRole('tab', { name: /installed/i })).toBeInTheDocument();
+        // Should have navigation items in sidebar (nav items render as buttons in PF6)
+        expect(await screen.findByText('Store')).toBeInTheDocument();
+        expect(await screen.findByText('Installed')).toBeInTheDocument();
     });
 
     it('shows store view by default', async () => {
         render(<App />);
 
-        // Wait for loading to complete and show categories
-        // The store view should be the default
-        expect(await screen.findByText(/loading/i)).toBeInTheDocument();
+        // Store view shows categories with Browse Categories title
+        expect(await screen.findByText(/browse categories/i)).toBeInTheDocument();
     });
 
     it('renders application title', async () => {
