@@ -1,11 +1,12 @@
 """
 Package filter command implementation.
 
-Filters packages with cascade filtering: store → repository → tab → search.
+Filters packages with cascade filtering: store → repository → category → tab → search.
 """
 
 from typing import Any
 
+from cockpit_container_apps.vendor.cockpit_apt_utils.debtag_parser import get_tags_by_facet
 from cockpit_container_apps.vendor.cockpit_apt_utils.errors import CacheError
 from cockpit_container_apps.vendor.cockpit_apt_utils.formatters import format_package
 from cockpit_container_apps.vendor.cockpit_apt_utils.repository_parser import (
@@ -18,6 +19,7 @@ from cockpit_container_apps.vendor.cockpit_apt_utils.store_filter import matches
 def execute(
     store_id: str | None = None,
     repository_id: str | None = None,
+    category_id: str | None = None,
     tab: str | None = None,
     search_query: str | None = None,
     limit: int = 1000,
@@ -28,12 +30,14 @@ def execute(
     Filter order (cascade):
     1. Store filter (if specified)
     2. Repository filter (if specified)
-    3. Tab filter: "installed" or "upgradable" (if specified)
-    4. Search query (if specified)
+    3. Category filter (if specified)
+    4. Tab filter: "installed" or "upgradable" (if specified)
+    5. Search query (if specified)
 
     Args:
         store_id: Optional store ID to filter by
         repository_id: Optional repository ID to filter by
+        category_id: Optional category ID to filter by (from category:: debtags)
         tab: Optional tab filter ("installed" or "upgradable")
         search_query: Optional search query to filter by
         limit: Maximum number of packages to return (default 1000)
@@ -89,6 +93,11 @@ def execute(
             if repository_id and not package_matches_repository(pkg, repository_id):
                 continue
 
+            if category_id:
+                categories = get_tags_by_facet(pkg, "category")
+                if category_id not in categories:
+                    continue
+
             if tab == "installed" and not pkg.is_installed:
                 continue
             if tab == "upgradable" and not pkg.is_upgradable:
@@ -109,6 +118,8 @@ def execute(
             applied_filters.append(f"store={store_id}")
         if repository_id:
             applied_filters.append(f"repository={repository_id}")
+        if category_id:
+            applied_filters.append(f"category={category_id}")
         if tab:
             applied_filters.append(f"tab={tab}")
         if search_query:

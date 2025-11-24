@@ -53,7 +53,11 @@ export const AppListView: React.FC<AppListViewProps> = ({
     if (isLoading) {
         return (
             <PageSection>
-                <Spinner aria-label="Loading apps" />
+                <EmptyState titleText="Loading apps..." headingLevel="h3">
+                    <EmptyStateBody>
+                        <Spinner size="xl" aria-label="Loading apps" />
+                    </EmptyStateBody>
+                </EmptyState>
             </PageSection>
         );
     }
@@ -85,11 +89,7 @@ export const AppListView: React.FC<AppListViewProps> = ({
     if (packages.length === 0) {
         return (
             <PageSection>
-                <EmptyState
-                    titleText="No apps available"
-                    icon={CubeIcon}
-                    headingLevel="h2"
-                >
+                <EmptyState titleText="No apps available" icon={CubeIcon} headingLevel="h2">
                     <EmptyStateBody>
                         There are no apps matching your current filters.
                     </EmptyStateBody>

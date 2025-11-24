@@ -5,20 +5,8 @@
  * with state management via AppContext.
  */
 
-import {
-    Brand,
-    Masthead,
-    MastheadBrand,
-    MastheadContent,
-    MastheadMain,
-    Nav,
-    NavItem,
-    NavList,
-    Page,
-    PageSidebar,
-    PageSidebarBody,
-    Spinner,
-} from '@patternfly/react-core';
+import { Page, PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
+import { CubesIcon, LayerGroupIcon } from '@patternfly/react-icons';
 import React, { useCallback, useState } from 'react';
 import type { Package } from './api/types';
 import { AppDetails } from './components/AppDetails';
@@ -45,71 +33,88 @@ function AppContent(): React.ReactElement {
     const [actionInProgress, setActionInProgress] = useState(false);
 
     // Navigate to a category's apps
-    const handleCategorySelect = useCallback((categoryId: string) => {
-        actions.setActiveCategory(categoryId);
-        setRouter({ route: 'category', selectedCategory: categoryId });
-    }, [actions]);
+    const handleCategorySelect = useCallback(
+        (categoryId: string) => {
+            actions.setActiveCategory(categoryId);
+            setRouter({ route: 'category', selectedCategory: categoryId });
+        },
+        [actions]
+    );
 
     // Navigate to app details
-    const handleAppSelect = useCallback((pkg: Package) => {
-        setRouter({ ...router, route: 'app', selectedPackage: pkg });
-    }, [router]);
+    const handleAppSelect = useCallback(
+        (pkg: Package) => {
+            setRouter({ ...router, route: 'app', selectedPackage: pkg });
+        },
+        [router]
+    );
 
     // Navigate back from app details
     const handleBack = useCallback(() => {
         if (router.selectedCategory) {
             setRouter({ route: 'category', selectedCategory: router.selectedCategory });
         } else {
-            setRouter({ route: router.route === 'app' && state.activeTab === 'installed' ? 'installed' : 'store' });
+            setRouter({
+                route:
+                    router.route === 'app' && state.activeTab === 'installed'
+                        ? 'installed'
+                        : 'store',
+            });
         }
-    }, [router.selectedCategory, state.activeTab]);
+    }, [router.selectedCategory, router.route, state.activeTab]);
 
     // Handle install action
-    const handleInstall = useCallback(async (pkg: Package) => {
-        setActionInProgress(true);
-        try {
-            // TODO: Implement actual install via cockpit.spawn
-            console.log('Installing:', pkg.name);
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-            await actions.refresh();
-        } finally {
-            setActionInProgress(false);
-        }
-    }, [actions]);
-
-    // Handle uninstall action
-    const handleUninstall = useCallback(async (pkg: Package) => {
-        setActionInProgress(true);
-        try {
-            // TODO: Implement actual uninstall via cockpit.spawn
-            console.log('Uninstalling:', pkg.name);
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-            await actions.refresh();
-        } finally {
-            setActionInProgress(false);
-        }
-    }, [actions]);
-
-    // Navigate via sidebar
-    const handleNavSelect = useCallback(
-        (_event: React.FormEvent<HTMLInputElement>, selectedItem: { itemId: number | string }) => {
-            const route = selectedItem.itemId as Route;
-            if (route === 'installed') {
-                actions.setActiveTab('installed');
-            } else {
-                actions.setActiveTab('available');
-                actions.setActiveCategory(null);
+    const handleInstall = useCallback(
+        async (pkg: Package) => {
+            setActionInProgress(true);
+            try {
+                // TODO: Implement actual install via cockpit.spawn
+                console.log('Installing:', pkg.name);
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+                await actions.refresh();
+            } finally {
+                setActionInProgress(false);
             }
-            setRouter({ route });
         },
         [actions]
     );
 
-    // Filter packages for display
-    const installedPackages = state.packages.filter((pkg) => pkg.installed);
-    const categoryPackages = router.selectedCategory
-        ? state.packages.filter((pkg) => pkg.section === router.selectedCategory)
-        : state.packages;
+    // Handle uninstall action
+    const handleUninstall = useCallback(
+        async (pkg: Package) => {
+            setActionInProgress(true);
+            try {
+                // TODO: Implement actual uninstall via cockpit.spawn
+                console.log('Uninstalling:', pkg.name);
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+                await actions.refresh();
+            } finally {
+                setActionInProgress(false);
+            }
+        },
+        [actions]
+    );
+
+    // Handle tab change
+    const handleTabChange = useCallback(
+        (_event: React.MouseEvent<HTMLElement, MouseEvent>, tabIndex: number | string) => {
+            if (tabIndex === 0) {
+                // Store tab
+                actions.setActiveTab('available');
+                actions.setActiveCategory(null);
+                setRouter({ route: 'store' });
+            } else if (tabIndex === 1) {
+                // Installed tab
+                actions.setActiveTab('installed');
+                setRouter({ route: 'installed' });
+            }
+        },
+        [actions]
+    );
+
+    // Packages are already filtered by backend based on activeCategory and activeTab
+    const installedPackages = state.packages;
+    const categoryPackages = state.packages;
 
     // Render content based on route
     const renderContent = () => {
@@ -167,51 +172,41 @@ function AppContent(): React.ReactElement {
         );
     };
 
-    // Masthead with brand
-    const masthead = (
-        <Masthead>
-            <MastheadMain>
-                <MastheadBrand>
-                    <Brand
-                        src="/images/logo.svg"
-                        alt="Container Apps"
-                        heights={{ default: '36px' }}
-                    >
-                        <span style={{ marginLeft: '0.5rem', fontSize: '1.25rem', fontWeight: 600 }}>
-                            Container Apps
-                        </span>
-                    </Brand>
-                </MastheadBrand>
-            </MastheadMain>
-            <MastheadContent>
-                {(state.loading || state.packagesLoading) && <Spinner size="md" />}
-            </MastheadContent>
-        </Masthead>
-    );
-
-    // Sidebar navigation
-    const sidebar = (
-        <PageSidebar>
-            <PageSidebarBody>
-                <Nav onSelect={handleNavSelect}>
-                    <NavList>
-                        <NavItem
-                            itemId="store"
-                            isActive={router.route === 'store' || router.route === 'category'}
-                        >
-                            Store
-                        </NavItem>
-                        <NavItem itemId="installed" isActive={router.route === 'installed'}>
-                            Installed
-                        </NavItem>
-                    </NavList>
-                </Nav>
-            </PageSidebarBody>
-        </PageSidebar>
-    );
+    // Determine active tab
+    const getActiveTab = () => {
+        if (router.route === 'installed') {
+            return 1;
+        }
+        return 0; // store, category, app
+    };
 
     return (
-        <Page masthead={masthead} sidebar={sidebar}>
+        <Page id="container-apps" className="pf-m-no-sidebar">
+            <PageSection hasBodyWrapper={false}>
+                <Tabs
+                    activeKey={getActiveTab()}
+                    onSelect={handleTabChange}
+                    isBox={false}
+                    aria-label="Container Apps navigation"
+                >
+                    <Tab
+                        eventKey={0}
+                        title={
+                            <TabTitleText>
+                                <LayerGroupIcon /> Store
+                            </TabTitleText>
+                        }
+                    />
+                    <Tab
+                        eventKey={1}
+                        title={
+                            <TabTitleText>
+                                <CubesIcon /> Installed
+                            </TabTitleText>
+                        }
+                    />
+                </Tabs>
+            </PageSection>
             {renderContent()}
         </Page>
     );

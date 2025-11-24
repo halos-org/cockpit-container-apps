@@ -49,9 +49,9 @@ Commands:
   list-categories [--store ID]          List all categories (auto-discovered from tags)
   list-packages-by-category CATEGORY [--store ID]
                                         List all packages in a category
-  filter-packages [OPTIONS]             Filter packages by store, repo, tab, search, limit
-                                        OPTIONS: [--store ID] [--repo ID] [--tab TAB]
-                                                 [--search QUERY] [--limit N]
+  filter-packages [OPTIONS]             Filter packages by store, repo, category, tab, search, limit
+                                        OPTIONS: [--store ID] [--repo ID] [--category ID]
+                                                 [--tab TAB] [--search QUERY] [--limit N]
   install PACKAGE                       Install a package (with progress)
   remove PACKAGE                        Remove a package (with progress)
 
@@ -149,6 +149,7 @@ def main() -> NoReturn:
             # Parse optional parameters
             store_id = None
             repository_id = None
+            category_id = None
             tab = None
             search_query = None
             limit = 1000
@@ -164,6 +165,11 @@ def main() -> NoReturn:
                     if i + 1 >= len(sys.argv):
                         raise APTBridgeError("--repo requires a value", code="INVALID_ARGUMENTS")
                     repository_id = sys.argv[i + 1]
+                    i += 2
+                elif sys.argv[i] == "--category":
+                    if i + 1 >= len(sys.argv):
+                        raise APTBridgeError("--category requires a value", code="INVALID_ARGUMENTS")
+                    category_id = sys.argv[i + 1]
                     i += 2
                 elif sys.argv[i] == "--tab":
                     if i + 1 >= len(sys.argv):
@@ -198,6 +204,7 @@ def main() -> NoReturn:
             result = filter_packages.execute(
                 store_id=store_id,
                 repository_id=repository_id,
+                category_id=category_id,
                 tab=tab,
                 search_query=search_query,
                 limit=limit,

@@ -45,11 +45,18 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
     onRetry,
     title,
 }) => {
+    // Debug: log loading state
+    console.log('CategoriesView render:', { isLoading, categoriesCount: categories.length, error });
+
     // Loading state
     if (isLoading) {
         return (
             <PageSection>
-                <Spinner aria-label="Loading categories" />
+                <EmptyState titleText="Loading categories..." headingLevel="h3">
+                    <EmptyStateBody>
+                        <Spinner size="xl" aria-label="Loading categories" />
+                    </EmptyStateBody>
+                </EmptyState>
             </PageSection>
         );
     }
@@ -81,11 +88,7 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
     if (categories.length === 0) {
         return (
             <PageSection>
-                <EmptyState
-                    titleText="No categories available"
-                    icon={CubesIcon}
-                    headingLevel="h2"
-                >
+                <EmptyState titleText="No categories available" icon={CubesIcon} headingLevel="h2">
                     <EmptyStateBody>
                         There are no categories available in this store.
                     </EmptyStateBody>

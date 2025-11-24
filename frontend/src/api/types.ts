@@ -110,6 +110,7 @@ export interface Package {
 export interface FilterParams {
     store_id?: string;
     repository_id?: string;
+    category_id?: string;
     tab?: 'installed' | 'upgradable';
     search_query?: string;
     limit?: number;

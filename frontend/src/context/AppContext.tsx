@@ -84,7 +84,7 @@ const initialState: AppState = {
     activeCategory: loadActiveCategory(),
     activeTab: loadActiveTab() || 'available',
     searchQuery: loadSearchQuery(),
-    loading: false,
+    loading: true, // Start with loading state to show spinner on mount
     error: null,
     packagesLoading: false,
     packagesError: null,
@@ -100,13 +100,21 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
 
     // Load stores on mount
     const loadStores = useCallback(async () => {
-        setState((prev) => ({ ...prev, loading: true, error: null }));
+        // Don't touch loading flag - let categories control it since that's the primary content
+        setState((prev) => ({ ...prev, error: null }));
         try {
             const stores = await listStores();
-            setState((prev) => ({ ...prev, stores, loading: false }));
+            setState((prev) => {
+                // If no store is selected and we have stores, default to the first one
+                const activeStore = prev.activeStore || (stores.length > 0 ? stores[0].id : null);
+                if (activeStore !== prev.activeStore && activeStore) {
+                    saveActiveStore(activeStore);
+                }
+                return { ...prev, stores, activeStore };
+            });
         } catch (e) {
             const error = e instanceof ContainerAppsError ? e.message : String(e);
-            setState((prev) => ({ ...prev, error, loading: false }));
+            setState((prev) => ({ ...prev, error }));
         }
     }, []);
 
@@ -127,6 +135,7 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
         setState((prev) => {
             const filterParams: FilterParams = {
                 store_id: params?.store_id ?? prev.activeStore ?? undefined,
+                category_id: params?.category_id ?? prev.activeCategory ?? undefined,
                 tab: params?.tab ?? (prev.activeTab !== 'available' ? prev.activeTab : undefined),
                 search_query: params?.search_query ?? (prev.searchQuery || undefined),
                 limit: params?.limit ?? 1000,

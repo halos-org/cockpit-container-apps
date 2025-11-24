@@ -159,6 +159,9 @@ export async function filterPackages(params: FilterParams = {}): Promise<FilterP
     if (params.repository_id) {
         args.push('--repo', params.repository_id);
     }
+    if (params.category_id) {
+        args.push('--category', params.category_id);
+    }
     if (params.tab) {
         args.push('--tab', params.tab);
     }
