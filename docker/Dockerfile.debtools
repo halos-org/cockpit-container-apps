@@ -1,0 +1,31 @@
+# Debian packaging environment for cockpit-container-apps
+#
+# Provides all build dependencies for creating Debian packages.
+
+FROM debian:trixie
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    debhelper \
+    devscripts \
+    dh-python \
+    fakeroot \
+    git \
+    lintian \
+    nodejs \
+    npm \
+    python3 \
+    python3-all \
+    python3-apt \
+    python3-hatchling \
+    python3-pip \
+    python3-venv \
+    python3-yaml \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /workspace
+
+# Default command
+CMD ["/bin/bash"]

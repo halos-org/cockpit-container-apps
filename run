@@ -1,0 +1,301 @@
+#!/usr/bin/env bash
+#
+# usage: ./run command [argument ...]
+#
+# Commands for cockpit-container-apps development.
+#
+
+set -o nounset
+set -o pipefail
+set -o errexit
+
+# Change the current directory to the project root.
+PROJECT_ROOT=${0%/*}
+if [[ $0 != $PROJECT_ROOT && $PROJECT_ROOT != "" ]]; then
+  cd "$PROJECT_ROOT"
+fi
+readonly PROJECT_ROOT=$(pwd)
+
+# Store the absolute path to this script (useful for recursion).
+readonly SCRIPT="$PROJECT_ROOT/$(basename "$0")"
+
+# cockpit-apt repository for vendoring
+readonly COCKPIT_APT_REPO="https://github.com/hatlabs/cockpit-apt.git"
+readonly COCKPIT_APT_VERSION="${COCKPIT_APT_VERSION:-v0.2.0+8}"
+
+################################################################################
+# Helper Functions
+
+function devtools {
+  #@ Run command in devtools container
+  docker compose -f docker/docker-compose.devtools.yml run --rm devtools "$@"
+}
+
+function debtools {
+  #@ Run command in debtools container (Debian packaging)
+  docker compose -f docker/docker-compose.debtools.yml run --rm debtools "$@"
+}
+
+################################################################################
+# Vendoring Commands
+
+function vendor {
+  #@ Vendor utilities from cockpit-apt
+  #@ Category: Vendor
+  local version="${1:-$COCKPIT_APT_VERSION}"
+  local vendor_dir="backend/cockpit_container_apps/vendor/cockpit_apt_utils"
+  local temp_dir=$(mktemp -d)
+
+  echo "📦 Vendoring utilities from cockpit-apt ${version}..."
+
+  # Clone the specific tag
+  git clone --depth 1 --branch "${version}" "${COCKPIT_APT_REPO}" "${temp_dir}" 2>/dev/null || {
+    echo "❌ Failed to clone cockpit-apt at version ${version}"
+    rm -rf "${temp_dir}"
+    exit 1
+  }
+
+  # Copy utils files
+  local source_dir="${temp_dir}/backend/cockpit_apt_bridge/utils"
+  if [[ ! -d "${source_dir}" ]]; then
+    echo "❌ Utils directory not found in cockpit-apt"
+    rm -rf "${temp_dir}"
+    exit 1
+  fi
+
+  # Remove old vendored files (except __init__.py)
+  find "${vendor_dir}" -name "*.py" ! -name "__init__.py" -delete 2>/dev/null || true
+
+  # Copy Python files
+  for file in "${source_dir}"/*.py; do
+    if [[ -f "$file" ]]; then
+      local basename=$(basename "$file")
+      if [[ "$basename" != "__init__.py" ]]; then
+        # Update imports in the file
+        sed 's/from cockpit_apt_bridge\.utils\./from cockpit_container_apps.vendor.cockpit_apt_utils./g' \
+            "$file" > "${vendor_dir}/${basename}"
+        echo "  Copied: ${basename}"
+      fi
+    fi
+  done
+
+  # Write VERSION file
+  echo "${version}" > "backend/cockpit_container_apps/vendor/VERSION"
+
+  # Cleanup
+  rm -rf "${temp_dir}"
+
+  echo "✅ Vendored cockpit-apt ${version} utilities"
+}
+
+function vendor-check {
+  #@ Check if vendored utilities are up to date
+  #@ Category: Vendor
+  local version_file="backend/cockpit_container_apps/vendor/VERSION"
+
+  if [[ ! -f "${version_file}" ]]; then
+    echo "❌ VERSION file not found. Run ./run vendor first."
+    exit 1
+  fi
+
+  local current_version=$(cat "${version_file}")
+  if [[ "${current_version}" == "NOT_VENDORED" ]]; then
+    echo "❌ Utilities not vendored. Run ./run vendor first."
+    exit 1
+  fi
+
+  echo "✅ Vendored utilities version: ${current_version}"
+}
+
+################################################################################
+# Debian Package Building Commands
+
+function build-deb {
+  #@ Build Debian package in debtools container
+  #@ Category: Debian
+  echo "📦 Building Debian package..."
+
+  # Ensure utilities are vendored
+  vendor-check
+
+  # Build in debtools container which has all build dependencies pre-installed
+  # dpkg-buildpackage writes to .. by convention, so we move files back after
+  debtools \
+    bash -c "dpkg-buildpackage -b -uc -us && mv ../*.deb ../*.buildinfo ../*.changes ./ 2>/dev/null || true"
+
+  # List generated packages
+  echo "📦 Generated packages:"
+  ls -lh cockpit-container-apps*.deb 2>/dev/null || echo "⚠️  No .deb files found"
+  echo "✅ Package build complete"
+}
+
+################################################################################
+# Backend proxy
+
+function backend {
+  #@ Proxy to backend run script
+  #@ Category: Backend
+  echo "➡️  Running backend command in ./backend/run"
+  cd backend
+  ./run "$@"
+}
+
+function test {
+  #@ Run backend tests (proxy)
+  #@ Category: Backend
+  backend test "$@"
+}
+
+function lint {
+  #@ Run backend linter (proxy)
+  #@ Category: Backend
+  backend lint
+}
+
+function typecheck {
+  #@ Run backend type checker (proxy)
+  #@ Category: Backend
+  backend typecheck
+}
+
+################################################################################
+# Frontend proxy
+
+function frontend {
+  #@ Proxy to frontend run script
+  #@ Category: Frontend
+  echo "➡️  Running frontend command in ./frontend/run"
+  cd frontend
+  ./run "$@"
+}
+
+################################################################################
+# Docker Management Commands
+
+function build-devtools {
+  #@ Build development Docker image
+  #@ Category: Docker
+  echo "🐳 Building development Docker image..."
+  docker compose -f docker/docker-compose.devtools.yml build devtools
+  echo "✅ Docker image built successfully"
+}
+
+function build-debtools {
+  #@ Build Debian packaging Docker image
+  #@ Category: Docker
+  echo "🐳 Building Debian packaging Docker image..."
+  docker compose -f docker/docker-compose.debtools.yml build debtools
+  echo "✅ Docker image built successfully"
+}
+
+function clean-devtools {
+  #@ Remove development Docker containers and images
+  #@ Category: Docker
+  echo "🧹 Cleaning Docker containers and images..."
+  docker compose -f docker/docker-compose.devtools.yml down --rmi all --volumes
+  echo "✅ Docker cleanup complete"
+}
+
+function clean-debtools {
+  #@ Remove Debian packaging Docker containers and images
+  #@ Category: Docker
+  echo "🧹 Cleaning Debian packaging Docker containers and images..."
+  docker compose -f docker/docker-compose.debtools.yml down --rmi all --volumes
+  echo "✅ Docker cleanup complete"
+}
+
+################################################################################
+# CI Commands
+
+function ci-test {
+  #@ Run all tests (backend + frontend) for CI
+  #@ Category: CI
+  echo "🚀 Running all tests for CI..."
+  test
+  # frontend test  # Uncomment when frontend tests are added
+  echo "✅ All tests passed"
+}
+
+function ci-lint {
+  #@ Run all linters (backend + frontend) for CI
+  #@ Category: CI
+  echo "🚀 Running all linters for CI..."
+  lint
+  typecheck
+  # frontend lint  # Uncomment when frontend is added
+  # frontend typecheck
+  echo "✅ All linters passed"
+}
+
+################################################################################
+# Utility Commands
+
+function clean {
+  #@ Clean build artifacts (proxy)
+  #@ Category: Utility
+  backend clean
+  # frontend clean  # Uncomment when frontend is added
+}
+
+################################################################################
+# Help System
+
+function help {
+  #@ Show this help message
+  #@ Category: Core
+  echo "Cockpit Container Apps - Development Commands"
+  echo "=============================================="
+  echo ""
+  echo "Available commands:"
+  echo ""
+
+  # Extract function definitions and their help comments
+  awk '/^function / {
+    fname = $2
+    sub(/[({].*/, "", fname)
+    getline
+    if ($0 ~ /#@/) {
+      desc = $0
+      sub(/.*#@ /, "", desc)
+      sub(/ *$/, "", desc)
+      getline
+      if ($0 ~ /#@ Category:/) {
+        cat = $0
+        sub(/.*Category: /, "", cat)
+        sub(/ *$/, "", cat)
+        if (!seen[cat]++) categories[++cat_count] = cat
+        commands[cat, ++cmd_count[cat]] = fname
+        descriptions[cat, cmd_count[cat]] = desc
+      }
+    }
+  }
+  END {
+    for (i = 1; i <= cat_count; i++) {
+      cat = categories[i]
+      print "\n" cat ":"
+      for (j = 1; j <= cmd_count[cat]; j++) {
+        printf "  %-25s %s\n", commands[cat, j], descriptions[cat, j]
+      }
+    }
+  }' "$0"
+
+  echo ""
+  echo "Usage: ./run <command> [arguments...]"
+  echo ""
+  echo "Quick start (Backend):"
+  echo "  1. ./run vendor             # Vendor cockpit-apt utilities"
+  echo "  2. ./run build-devtools     # Build development container"
+  echo "  3. ./run backend test       # Run backend tests"
+  echo "  4. ./run backend shell      # Open backend dev shell"
+  echo ""
+  echo "Quick start (Frontend):"
+  echo "  1. cd frontend && npm install"
+  echo "  2. ./run frontend build     # Build frontend"
+  echo "  3. ./run frontend watch     # Watch for changes"
+}
+
+################################################################################
+# Commands end.
+
+TIMEFORMAT=$'\nTask completed in %3lR'
+time "${@:-help}"

@@ -1,0 +1,23 @@
+services:
+  devtools:
+    build:
+      context: .
+      dockerfile: Dockerfile.devtools
+    image: cockpit-container-apps-devtools:latest
+
+    # Mount the entire project
+    volumes:
+      - ../:/workspace
+
+    # Working directory
+    working_dir: /workspace
+
+    # Keep container running for Dev Container
+    stdin_open: true
+    tty: true
+
+    # Run as root for package building (needed for apt-get and dpkg)
+    user: root
+
+    # Override command for interactive use
+    command: /bin/bash

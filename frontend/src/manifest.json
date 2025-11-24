@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "name": "container-apps",
+  "description": "Container Apps",
+  "requires": {
+    "cockpit": "276"
+  },
+  "menu": {
+    "index": {
+      "label": "Container Apps",
+      "order": 45
+    }
+  }
+}
