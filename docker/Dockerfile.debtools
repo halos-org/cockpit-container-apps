@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     lintian \
     nodejs \
     npm \
+    pybuild-plugin-pyproject \
     python3 \
     python3-all \
     python3-apt \
