@@ -7,6 +7,11 @@
 
 Cockpit Container Apps follows the same three-tier architecture as cockpit-apt, ensuring consistency across HaLOS Cockpit modules and enabling code reuse.
 
+### Related Documentation
+
+- **Store design**: `cockpit-apt/docs/CONTAINER_STORE_DESIGN.md` - Store filtering and UI architecture
+- **Container packaging**: `container-packaging-tools/docs/DESIGN.md` - Package structure and configuration
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      Cockpit Browser                        │
@@ -236,18 +241,20 @@ interface ConfigValues {
 
 ### Config File Location
 
-Container app configurations are stored in:
+Container app configurations are stored in `/etc/container-apps/<package-name>/`:
+
 ```
-/var/lib/container-apps/<app-name>/config.env
+/etc/container-apps/<package-name>/
+├── env.defaults    # Package-provided defaults (managed by package)
+└── env             # User overrides (editable)
 ```
 
 ### Format
 
 Simple environment variable format compatible with Docker Compose:
 ```bash
-APP_PORT=8080
-LOG_LEVEL=info
-ADMIN_PASSWORD=secret
+# /etc/container-apps/avnav-container/env
+AVNAV_HTTP_PORT=8082
 ```
 
 ### Docker Compose Integration
@@ -257,8 +264,17 @@ The app's `docker-compose.yml` references these via `env_file`:
 services:
   app:
     env_file:
-      - /var/lib/container-apps/myapp/config.env
+      - /etc/container-apps/avnav-container/env.defaults
+      - /etc/container-apps/avnav-container/env
 ```
+
+The user's `env` file overrides values from `env.defaults`.
+
+### Reference
+
+For detailed container app packaging design, see:
+- `container-packaging-tools/docs/DESIGN.md`
+- `container-packaging-tools/docs/SPEC.md`
 
 ## Frontend Components
 
