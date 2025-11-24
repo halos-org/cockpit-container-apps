@@ -28,9 +28,11 @@ from typing import Any, NoReturn
 
 from cockpit_container_apps.commands import (
     filter_packages,
+    install,
     list_categories,
     list_packages_by_category,
     list_stores,
+    remove,
 )
 from cockpit_container_apps.vendor.cockpit_apt_utils.errors import APTBridgeError, format_error
 from cockpit_container_apps.vendor.cockpit_apt_utils.formatters import to_json
@@ -50,6 +52,8 @@ Commands:
   filter-packages [OPTIONS]             Filter packages by store, repo, tab, search, limit
                                         OPTIONS: [--store ID] [--repo ID] [--tab TAB]
                                                  [--search QUERY] [--limit N]
+  install PACKAGE                       Install a package (with progress)
+  remove PACKAGE                        Remove a package (with progress)
 
 Examples:
   cockpit-container-apps version
@@ -57,6 +61,8 @@ Examples:
   cockpit-container-apps list-categories --store marine
   cockpit-container-apps list-packages-by-category navigation --store marine
   cockpit-container-apps filter-packages --store marine --tab installed --limit 50
+  cockpit-container-apps install cowsay
+  cockpit-container-apps remove cowsay
 """
     print(usage, file=sys.stderr)
 
@@ -196,6 +202,24 @@ def main() -> NoReturn:
                 search_query=search_query,
                 limit=limit,
             )
+
+        elif command == "install":
+            if len(sys.argv) < 3:
+                raise APTBridgeError(
+                    "Install command requires a package name argument",
+                    code="INVALID_ARGUMENTS",
+                )
+            package_name = sys.argv[2]
+            result = install.execute(package_name)
+
+        elif command == "remove":
+            if len(sys.argv) < 3:
+                raise APTBridgeError(
+                    "Remove command requires a package name argument",
+                    code="INVALID_ARGUMENTS",
+                )
+            package_name = sys.argv[2]
+            result = remove.execute(package_name)
 
         elif command in ("--help", "-h", "help"):
             print_usage()
