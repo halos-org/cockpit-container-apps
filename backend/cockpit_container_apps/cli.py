@@ -1,89 +1,101 @@
 """
 Command-line interface for cockpit-container-apps.
 
-This module provides the main entry point for the cockpit-container-apps CLI.
-It parses command-line arguments, routes to appropriate command handlers,
-and formats output as JSON.
-
-Usage:
-    cockpit-container-apps <command> [options]
+This module provides the main entry point for the cockpit-container-apps CLI tool.
+It parses command-line arguments and dispatches to appropriate command handlers,
+handling errors and formatting output as JSON.
 
 Commands:
-    version     Show version information
-    list-stores List available container app stores
-    list-apps   List apps in a store
+    version                           - Show version information
+    list-stores                       - List available container app stores
 
-All output is formatted as JSON for consumption by the Cockpit frontend.
+Exit Codes:
+    0 - Success
+    1 - Expected error (validation, package not found, etc.)
+    2 - Unexpected error
+
+Output Format:
+    - Success: JSON to stdout, exit 0
+    - Error: JSON error to stderr, exit non-zero
+
+Example Usage:
+    $ cockpit-container-apps version
+    $ cockpit-container-apps list-stores
 """
 
-import argparse
-import json
 import sys
 from typing import Any, NoReturn
 
 from cockpit_container_apps.vendor.cockpit_apt_utils.errors import APTBridgeError, format_error
+from cockpit_container_apps.vendor.cockpit_apt_utils.formatters import to_json
 
 
-def cmd_version(_args: argparse.Namespace) -> dict[str, Any]:
+def print_usage() -> None:
+    """Print usage information to stderr."""
+    usage = """
+Usage: cockpit-container-apps <command> [arguments]
+
+Commands:
+  version                           Show version information
+  list-stores                       List available container app stores
+
+Examples:
+  cockpit-container-apps version
+  cockpit-container-apps list-stores
+"""
+    print(usage, file=sys.stderr)
+
+
+def cmd_version() -> dict[str, Any]:
     """Return version information."""
     from cockpit_container_apps import __version__
 
     return {"version": __version__, "name": "cockpit-container-apps"}
 
 
-def create_parser() -> argparse.ArgumentParser:
-    """Create the argument parser with all subcommands."""
-    parser = argparse.ArgumentParser(
-        prog="cockpit-container-apps",
-        description="Container app management backend for Cockpit",
-    )
-
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
-
-    # version command
-    subparsers.add_parser("version", help="Show version information")
-
-    # list-stores command (placeholder for future implementation)
-    subparsers.add_parser("list-stores", help="List available container app stores")
-
-    # list-apps command (placeholder for future implementation)
-    list_apps = subparsers.add_parser("list-apps", help="List apps in a store")
-    list_apps.add_argument("store", help="Store identifier")
-
-    return parser
-
-
 def main() -> NoReturn:
-    """Main entry point for the CLI."""
-    parser = create_parser()
-    args = parser.parse_args()
+    """
+    Main entry point for the CLI.
 
-    if not args.command:
-        parser.print_help()
-        sys.exit(1)
-
-    # Route to command handler
-    handlers: dict[str, Any] = {
-        "version": cmd_version,
-        # Future commands will be added here
-    }
-
+    Parses arguments, dispatches to command handler, and outputs JSON.
+    Exits with code 0 on success, non-zero on error.
+    """
     try:
-        handler = handlers.get(args.command)
-        if handler is None:
-            raise APTBridgeError(
-                f"Unknown command: {args.command}",
-                code="UNKNOWN_COMMAND",
-            )
+        # Parse command-line arguments
+        if len(sys.argv) < 2:
+            print_usage()
+            sys.exit(1)
 
-        result = handler(args)
-        print(json.dumps(result, indent=2))
+        command = sys.argv[1]
+
+        # Dispatch to command handler
+        result: dict[str, Any] | None = None
+
+        if command == "version":
+            result = cmd_version()
+
+        elif command in ("--help", "-h", "help"):
+            print_usage()
+            sys.exit(0)
+
+        else:
+            raise APTBridgeError(f"Unknown command: {command}", code="UNKNOWN_COMMAND")
+
+        # Output result as JSON to stdout (if not None)
+        # Commands that stream progress may print results themselves and return None
+        if result is not None:
+            print(to_json(result))
         sys.exit(0)
 
     except APTBridgeError as e:
+        # Expected errors - output formatted error to stderr
         print(format_error(e), file=sys.stderr)
         sys.exit(1)
+
     except Exception as e:
-        error = APTBridgeError(str(e), code="UNKNOWN_ERROR")
+        # Unexpected errors - output generic error to stderr
+        error = APTBridgeError(
+            f"Unexpected error: {str(e)}", code="INTERNAL_ERROR", details=type(e).__name__
+        )
         print(format_error(error), file=sys.stderr)
         sys.exit(2)

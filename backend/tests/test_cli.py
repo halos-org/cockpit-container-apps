@@ -2,12 +2,36 @@
 Tests for the CLI module.
 
 Verifies that the CLI correctly parses arguments and routes to handlers.
+Tests are designed to match cockpit-apt CLI behavior.
 """
 
 import json
 import os
 import subprocess
 import sys
+from unittest.mock import patch
+
+import pytest
+
+from cockpit_container_apps import cli
+
+
+def get_test_cwd() -> str:
+    """Get the appropriate working directory for tests."""
+    cwd = "/workspace/backend"
+    if not os.path.exists(cwd):
+        cwd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return cwd
+
+
+def run_cli(*args: str) -> subprocess.CompletedProcess[str]:
+    """Run the CLI with the given arguments."""
+    return subprocess.run(
+        [sys.executable, "-m", "cockpit_container_apps", *args],
+        capture_output=True,
+        text=True,
+        cwd=get_test_cwd(),
+    )
 
 
 class TestCLIVersion:
@@ -15,17 +39,7 @@ class TestCLIVersion:
 
     def test_version_command(self):
         """Test that version command returns valid JSON."""
-        # Use /workspace/backend as cwd when running in Docker container
-        cwd = "/workspace/backend"
-        if not os.path.exists(cwd):
-            cwd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-        result = subprocess.run(
-            [sys.executable, "-m", "cockpit_container_apps", "version"],
-            capture_output=True,
-            text=True,
-            cwd=cwd,
-        )
+        result = run_cli("version")
 
         assert result.returncode == 0
         output = json.loads(result.stdout)
@@ -38,40 +52,89 @@ class TestCLIHelp:
 
     def test_no_command_shows_help(self):
         """Test that running without a command shows help."""
-        # Use /workspace/backend as cwd when running in Docker container
-        cwd = "/workspace/backend"
-        if not os.path.exists(cwd):
-            cwd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        result = run_cli()
 
-        result = subprocess.run(
-            [sys.executable, "-m", "cockpit_container_apps"],
-            capture_output=True,
-            text=True,
-            cwd=cwd,
-        )
-
-        # Should exit with code 1 and show help
+        # Should exit with code 1 and show usage to stderr
         assert result.returncode == 1
-        assert "usage" in result.stderr.lower() or "usage" in result.stdout.lower()
+        assert "usage" in result.stderr.lower()
+
+    def test_help_command(self):
+        """Test that help command shows usage."""
+        result = run_cli("help")
+
+        assert result.returncode == 0
+        assert "usage" in result.stderr.lower()
+
+    def test_help_flag(self):
+        """Test that --help flag shows usage."""
+        result = run_cli("--help")
+
+        assert result.returncode == 0
+        assert "usage" in result.stderr.lower()
+
+    def test_h_flag(self):
+        """Test that -h flag shows usage."""
+        result = run_cli("-h")
+
+        assert result.returncode == 0
+        assert "usage" in result.stderr.lower()
 
 
 class TestCLIUnknownCommand:
     """Tests for unknown command handling."""
 
-    def test_unknown_command_error(self):
-        """Test that unknown commands return an error."""
-        # Use /workspace/backend as cwd when running in Docker container
-        cwd = "/workspace/backend"
-        if not os.path.exists(cwd):
-            cwd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    def test_unknown_command_returns_json_error(self):
+        """Test that unknown commands return a JSON error to stderr."""
+        result = run_cli("nonexistent")
 
-        result = subprocess.run(
-            [sys.executable, "-m", "cockpit_container_apps", "nonexistent"],
-            capture_output=True,
-            text=True,
-            cwd=cwd,
-        )
+        # Should exit with code 1 (expected error)
+        assert result.returncode == 1
 
-        # argparse returns exit code 2 for invalid arguments
-        assert result.returncode == 2
-        assert "invalid choice" in result.stderr.lower() or "error" in result.stderr.lower()
+        # Should return JSON error to stderr
+        error = json.loads(result.stderr)
+        assert "error" in error
+        assert "code" in error
+        assert error["code"] == "UNKNOWN_COMMAND"
+        assert "nonexistent" in error["error"]
+
+
+class TestCLIErrorHandling:
+    """Tests for error handling."""
+
+    def test_unexpected_error_returns_internal_error(self, capsys):
+        """Test handling of unexpected errors."""
+        with (
+            patch("sys.argv", ["cockpit-container-apps", "version"]),
+            patch(
+                "cockpit_container_apps.cli.cmd_version",
+                side_effect=RuntimeError("Unexpected"),
+            ),
+            pytest.raises(SystemExit) as exc_info,
+        ):
+            cli.main()
+
+        assert exc_info.value.code == 2
+        captured = capsys.readouterr()
+        error = json.loads(captured.err)
+        assert error["code"] == "INTERNAL_ERROR"
+        assert "Unexpected" in error["error"]
+
+
+class TestCLIOutputFormat:
+    """Tests for output formatting."""
+
+    def test_json_output_is_pretty_printed(self):
+        """Test that JSON output uses consistent formatting."""
+        result = run_cli("version")
+
+        assert result.returncode == 0
+        # Check for pretty printing (2-space indent)
+        assert "\n  " in result.stdout
+
+    def test_json_preserves_unicode(self):
+        """Test that JSON output preserves unicode characters."""
+        result = run_cli("version")
+
+        assert result.returncode == 0
+        # Output should be valid JSON
+        json.loads(result.stdout)

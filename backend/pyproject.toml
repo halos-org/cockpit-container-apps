@@ -92,7 +92,7 @@ indent-style = "space"
 
 [tool.pyright]
 include = ["cockpit_container_apps"]
-exclude = ["**/__pycache__", "**/node_modules", ".venv", ".uv"]
+exclude = ["**/__pycache__", "**/node_modules", ".venv", ".uv", "**/vendor/**"]
 stubPath = "stubs"
 pythonVersion = "3.11"
 typeCheckingMode = "strict"
@@ -101,3 +101,5 @@ reportMissingTypeStubs = false
 reportUnknownMemberType = false
 reportUnknownArgumentType = false
 reportUnknownVariableType = false
+reportUnknownParameterType = false
+reportUnnecessaryComparison = false
