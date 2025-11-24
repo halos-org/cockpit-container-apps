@@ -153,23 +153,23 @@ Container app stores are curated collections of packages defined by filter crite
 
 Store configurations are YAML files located in the stores directory under the container-apps configuration path. Each store defines identity and metadata including a unique identifier, display name, description, and optional icon path.
 
-**Filter Specification**: Stores define which packages belong to them through filters. Include origins lists repository Origin values to include. Include sections lists Debian package sections to include. Include tags lists debtags that qualify packages. Include packages explicitly names packages to include. All filters are optional but at least one must be specified.
+**Filter Specification**: Stores define which packages belong to them through filters. Include origins lists repository Origin values to include. Include tags lists debtags that qualify packages. Include packages explicitly names packages to include. All filters are optional but at least one must be specified.
 
 **Filter Logic**: Within each filter category, OR logic applies so a package matching any value qualifies. Between categories, AND logic applies so all specified filter types must match. This allows precise control over which packages appear in a store.
 
-**Section Metadata**: Stores can provide custom labels, descriptions, and icons for sections. This allows marine-specific labels like "Navigation" instead of generic Debian section names.
+**Category Metadata**: Stores define categories for organizing apps within the store. Each category has an identifier, display label, description, and icon. Categories are defined in the store configuration and used for browsing, not derived from Debian sections.
 
 ### Store Filter Matching
 
 The filter matching process evaluates each package against the store's filter criteria.
 
-**Evaluation Order**: First check if the package's origin matches any include_origins value. Then check if the package's section matches any include_sections value. Then check if any of the package's debtags match any include_tags value. Finally check if the package name is in the include_packages list.
+**Evaluation Order**: First check if the package's origin matches any include_origins value. Then check if any of the package's debtags match any include_tags value. Finally check if the package name is in the include_packages list.
 
 **Result Determination**: For each specified filter category, the package must have at least one match. If a category is not specified in the store config, it does not constrain matching. A package belongs to the store only if it satisfies all specified categories.
 
 ### Debtag-Based Filtering
 
-Debian's faceted tag system provides rich package categorization beyond simple sections.
+Debian's faceted tag system provides rich package categorization.
 
 **Tag Format**: Tags use the facet::value syntax. Common facets include role for package role, field for application domain, interface for UI type, use for primary purpose, and network for network role.
 
@@ -193,11 +193,11 @@ A store represents a curated collection of container apps. It has an identifier 
 
 ### Category Model
 
-Categories organize apps within a store. Each has an identifier, a display label, an optional icon, an optional description, and a count of apps in that category. Categories derive from debtags or custom section metadata.
+Categories organize apps within a store. Each has an identifier, a display label, an optional icon, an optional description, and a count of apps in that category. Categories are defined in the store configuration and apps are assigned to categories via their debtags.
 
 ### App Model
 
-An app represents a container application package. Core attributes include name, summary description, version, and installation status. Filter-related attributes include the package's origin, section, and debtags. Display attributes include the full description and optional icon.
+An app represents a container application package. Core attributes include name, summary description, version, and installation status. Filter-related attributes include the package's origin and debtags. Display attributes include the full description and optional icon.
 
 ### Config Schema Model
 
@@ -221,17 +221,19 @@ Container app configurations are stored in the container-apps directory under /e
 
 ### Page Structure
 
-The main page provides a container apps browsing and management interface.
+The module provides multiple views for browsing and managing container apps. Cockpit already provides a sidebar, so the module uses cards and separate pages rather than its own sidebar navigation.
 
-**Store Selector**: Allows choosing the active container app store. Hidden if no stores are installed.
+**Store Selector**: Allows choosing the active container app store. Hidden if no stores are installed. Appears at the top of the main views.
 
-**Category Navigation**: Sidebar listing categories within the selected store. Clicking a category filters the app list.
+**Category View**: The landing page for a store displays categories as cards in a grid. Each card shows the category name, description, icon, and app count. Clicking a category card navigates to the app list for that category.
 
-**App List**: Grid or list of apps matching current filters. Each app shows as a card with name, summary, icon, and installation status.
+**App List View**: Shows apps within a selected category as a grid of cards. Each app card displays name, summary, icon, and installation status. Clicking an app card navigates to the app details view.
 
-**App Details Panel**: Expanded view of a selected app. Shows full description, version information, and install/remove button. Includes the configuration tab for installed apps.
+**Installed Apps View**: A separate view listing all installed container apps regardless of category. Provides quick access to configuration and removal for apps the user has already installed.
 
-**Configuration Form**: Dynamic form generated from the app's config.yml schema. Groups fields visually by the schema's group definitions. Each field renders with appropriate input control based on type.
+**App Details View**: Full page view for a selected app. Shows complete description, version information, installation status, and install/remove button. For installed apps, includes the configuration section.
+
+**Configuration Form**: Dynamic form generated from the app's config.yml schema. Groups fields visually by the schema's group definitions. Each field renders with appropriate input control based on type. Appears within the app details view for installed apps.
 
 **Install Progress**: Modal dialog showing installation or removal progress with streaming output from APT.
 
