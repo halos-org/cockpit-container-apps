@@ -227,6 +227,31 @@ function ci-lint {
   echo "✅ All linters passed"
 }
 
+function ci-check {
+  #@ Run full CI check locally (vendor-check, lint, typecheck, test)
+  #@ Category: CI
+  echo "🔍 Running full CI check locally..."
+  echo ""
+
+  echo "Step 1/4: Checking vendored utilities..."
+  vendor-check
+  echo ""
+
+  echo "Step 2/4: Running linter..."
+  lint
+  echo ""
+
+  echo "Step 3/4: Running type checker..."
+  typecheck
+  echo ""
+
+  echo "Step 4/4: Running tests..."
+  test
+  echo ""
+
+  echo "✅ All CI checks passed!"
+}
+
 ################################################################################
 # Utility Commands
 
