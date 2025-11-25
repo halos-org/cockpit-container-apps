@@ -129,6 +129,9 @@ describe('App Navigation Integration', () => {
         it('should start at root URL showing categories', async () => {
             render(<App />);
 
+            // Wait for stores to load first
+            await screen.findByText('Marine Apps');
+
             // Should show categories view
             expect(await screen.findByText('Navigation')).toBeInTheDocument();
 
@@ -140,7 +143,8 @@ describe('App Navigation Integration', () => {
             const user = userEvent.setup();
             render(<App />);
 
-            // Wait for categories to load
+            // Wait for stores and categories to load
+            await screen.findByText('Marine Apps');
             const navCategory = await screen.findByText('Navigation');
 
             // Click on Navigation category
@@ -159,7 +163,8 @@ describe('App Navigation Integration', () => {
             const user = userEvent.setup();
             render(<App />);
 
-            // Navigate to category first
+            // Wait for stores and categories to load
+            await screen.findByText('Marine Apps');
             const navCategory = await screen.findByText('Navigation');
             await user.click(navCategory);
 
@@ -182,6 +187,8 @@ describe('App Navigation Integration', () => {
             const user = userEvent.setup();
             render(<App />);
 
+            // Wait for stores and categories to load
+            await screen.findByText('Marine Apps');
             const navCategory = await screen.findByText('Navigation');
 
             // Click on Navigation category
@@ -251,7 +258,8 @@ describe('App Navigation Integration', () => {
             const user = userEvent.setup();
             render(<App />);
 
-            // Start at categories
+            // Wait for stores and categories to load
+            await screen.findByText('Marine Apps');
             const navCategory = await screen.findByText('Navigation');
 
             // Navigate to category
@@ -328,13 +336,11 @@ describe('App Navigation Integration', () => {
             render(<App />);
 
             // Should apply the filter
-            await waitFor(() => {
-                expect(screen.getByText('Installed')).toBeInTheDocument();
-            });
+            const installedButton = await screen.findByText('Installed');
 
             // Filter should be selected
-            const installedButton = screen.getByText('Installed').closest('button');
-            expect(installedButton).toHaveClass('pf-m-selected');
+            const button = installedButton.closest('button');
+            expect(button).toHaveAttribute('aria-pressed', 'true');
         });
     });
 
