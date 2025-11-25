@@ -27,6 +27,9 @@ vi.mock('../api', () => ({
             icon: null,
             description: 'Nav apps',
             count: 5,
+            count_all: 5,
+            count_available: 3,
+            count_installed: 2,
         },
     ]),
     filterPackages: vi.fn().mockResolvedValue({
@@ -80,8 +83,11 @@ describe('App', () => {
     it('shows store view by default', async () => {
         render(<App />);
 
+        // Wait for stores to load
+        await screen.findByText('HaLOS Marine');
+
         // Store view shows categories with Browse Categories title
-        expect(await screen.findByText(/browse categories/i)).toBeInTheDocument();
+        expect(await screen.findByText(/browse categories/i, {}, { timeout: 3000 })).toBeInTheDocument();
     });
 
     describe('Store Tabs', () => {
