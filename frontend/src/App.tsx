@@ -64,15 +64,37 @@ function AppContent(): React.ReactElement {
         async (pkg: Package) => {
             setActionInProgress(true);
             try {
-                // TODO: Implement actual install via cockpit.spawn
-                console.log('Installing:', pkg.name);
-                await new Promise((resolve) => setTimeout(resolve, 2000));
+                const { installPackage } = await import('./api');
+                await installPackage(pkg.name, (percentage, message) => {
+                    console.log(`Install progress: ${percentage}% - ${message}`);
+                });
+
+                // Refresh data to get updated package states
                 await actions.refresh();
+
+                // Update the selected package with fresh data from reloaded state
+                setRouter((currentRouter) => {
+                    if (currentRouter.route === 'app' && currentRouter.selectedPackage) {
+                        // Find the updated package in state.packages
+                        const updatedPkg = state.packages.find((p) => p.name === pkg.name);
+                        if (updatedPkg) {
+                            // Update router with fresh package data
+                            return {
+                                ...currentRouter,
+                                selectedPackage: updatedPkg,
+                            };
+                        }
+                    }
+                    return currentRouter;
+                });
+            } catch (error) {
+                console.error('Install failed:', error);
+                throw error;
             } finally {
                 setActionInProgress(false);
             }
         },
-        [actions]
+        [actions, state.packages]
     );
 
     // Handle uninstall action
@@ -80,10 +102,26 @@ function AppContent(): React.ReactElement {
         async (pkg: Package) => {
             setActionInProgress(true);
             try {
-                // TODO: Implement actual uninstall via cockpit.spawn
-                console.log('Uninstalling:', pkg.name);
-                await new Promise((resolve) => setTimeout(resolve, 2000));
+                const { removePackage } = await import('./api');
+                await removePackage(pkg.name, (percentage, message) => {
+                    console.log(`Remove progress: ${percentage}% - ${message}`);
+                });
+
+                // Refresh data to get updated package states
                 await actions.refresh();
+
+                // Navigate back to the list view to show updated state
+                // This matches cockpit-apt behavior after remove
+                setRouter((currentRouter) => {
+                    if (currentRouter.selectedCategory) {
+                        return { route: 'category', selectedCategory: currentRouter.selectedCategory };
+                    } else {
+                        return { route: 'store' };
+                    }
+                });
+            } catch (error) {
+                console.error('Remove failed:', error);
+                throw error;
             } finally {
                 setActionInProgress(false);
             }
