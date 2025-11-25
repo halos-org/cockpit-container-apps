@@ -127,17 +127,16 @@ export async function listStores(): Promise<Store[]> {
 
 /**
  * List categories for a store (auto-discovered from package tags)
+ *
+ * Returns all count states (all, available, installed) in a single response,
+ * enabling instant filter switching without reloading categories.
  */
 export async function listCategories(
-    storeId?: string,
-    tab?: 'installed' | 'upgradable'
+    storeId?: string
 ): Promise<Category[]> {
     const args: string[] = [];
     if (storeId) {
         args.push('--store', storeId);
-    }
-    if (tab) {
-        args.push('--tab', tab);
     }
     return executeCommand<Category[]>('list-categories', args);
 }

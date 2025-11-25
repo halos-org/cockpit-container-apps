@@ -100,9 +100,8 @@ def main() -> NoReturn:
             result = list_stores.execute()
 
         elif command == "list-categories":
-            # Parse optional --store and --tab parameters
+            # Parse optional --store parameter
             store_id = None
-            tab = None
             i = 2
             while i < len(sys.argv):
                 if sys.argv[i] == "--store":
@@ -110,17 +109,12 @@ def main() -> NoReturn:
                         raise APTBridgeError("--store requires a value", code="INVALID_ARGUMENTS")
                     store_id = sys.argv[i + 1]
                     i += 2
-                elif sys.argv[i] == "--tab":
-                    if i + 1 >= len(sys.argv):
-                        raise APTBridgeError("--tab requires a value", code="INVALID_ARGUMENTS")
-                    tab = sys.argv[i + 1]
-                    i += 2
                 else:
                     raise APTBridgeError(
                         f"Unknown parameter: {sys.argv[i]}",
                         code="INVALID_ARGUMENTS",
                     )
-            result = list_categories.execute(store_id, tab)
+            result = list_categories.execute(store_id)
 
         elif command == "list-packages-by-category":
             if len(sys.argv) < 3:

@@ -17,7 +17,7 @@ from cockpit_container_apps.vendor.cockpit_apt_utils.store_config import load_st
 from cockpit_container_apps.vendor.cockpit_apt_utils.store_filter import matches_store_filter
 
 
-def execute(store_id: str | None = None, tab: str | None = None) -> list[dict[str, Any]]:
+def execute(store_id: str | None = None) -> list[dict[str, Any]]:
     """
     List all categories auto-discovered from packages in a store.
 
@@ -25,13 +25,15 @@ def execute(store_id: str | None = None, tab: str | None = None) -> list[dict[st
     matching the store filter are considered. Category metadata (label,
     icon, description) can be enhanced via store configuration.
 
+    Returns all count states (all, available, installed) in a single response
+    to enable instant filter switching without reloading.
+
     Args:
         store_id: Optional store ID to filter packages. If None, uses all packages.
-        tab: Optional tab filter ("installed" or "upgradable") to filter package counts.
 
     Returns:
-        List of category dictionaries with id, label, icon, description, and count,
-        sorted alphabetically by label.
+        List of category dictionaries with id, label, icon, description, count,
+        count_all, count_available, and count_installed, sorted alphabetically by label.
 
     Raises:
         APTBridgeError: If store_id is invalid
