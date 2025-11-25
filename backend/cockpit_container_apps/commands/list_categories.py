@@ -17,7 +17,7 @@ from cockpit_container_apps.vendor.cockpit_apt_utils.store_config import load_st
 from cockpit_container_apps.vendor.cockpit_apt_utils.store_filter import matches_store_filter
 
 
-def execute(store_id: str | None = None) -> list[dict[str, Any]]:
+def execute(store_id: str | None = None, tab: str | None = None) -> list[dict[str, Any]]:
     """
     List all categories auto-discovered from packages in a store.
 
@@ -27,6 +27,7 @@ def execute(store_id: str | None = None) -> list[dict[str, Any]]:
 
     Args:
         store_id: Optional store ID to filter packages. If None, uses all packages.
+        tab: Optional tab filter ("installed" or "upgradable") to filter package counts.
 
     Returns:
         List of category dictionaries with id, label, icon, description, and count,
@@ -74,8 +75,11 @@ def execute(store_id: str | None = None) -> list[dict[str, Any]]:
                     meta.id: meta for meta in store_config.category_metadata
                 }
 
-        # Collect categories with counts
-        category_counts: dict[str, int] = {}
+        # Collect categories with counts for all states (all, available, installed)
+        # This allows frontend to switch between states without reloading
+        category_counts_all: dict[str, int] = {}
+        category_counts_available: dict[str, int] = {}
+        category_counts_installed: dict[str, int] = {}
 
         for pkg in cache:
             # Apply store filter if configured
@@ -89,8 +93,31 @@ def execute(store_id: str | None = None) -> list[dict[str, Any]]:
             # Extract category tags
             categories = get_tags_by_facet(pkg, "category")
 
+            # Count for all packages
             for category_id in categories:
-                category_counts[category_id] = category_counts.get(category_id, 0) + 1
+                category_counts_all[category_id] = category_counts_all.get(category_id, 0) + 1
+
+            # Count for available (not installed) packages
+            if not pkg.is_installed:
+                for category_id in categories:
+                    category_counts_available[category_id] = (
+                        category_counts_available.get(category_id, 0) + 1
+                    )
+
+            # Count for installed packages
+            if pkg.is_installed:
+                for category_id in categories:
+                    category_counts_installed[category_id] = (
+                        category_counts_installed.get(category_id, 0) + 1
+                    )
+
+        # Select the appropriate counts based on tab filter
+        if tab == "installed":
+            category_counts = category_counts_installed
+        elif tab == "available":
+            category_counts = category_counts_available
+        else:
+            category_counts = category_counts_all
 
         # Build category list with metadata
         categories = []

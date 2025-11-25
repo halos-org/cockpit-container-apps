@@ -128,8 +128,17 @@ export async function listStores(): Promise<Store[]> {
 /**
  * List categories for a store (auto-discovered from package tags)
  */
-export async function listCategories(storeId?: string): Promise<Category[]> {
-    const args = storeId ? ['--store', storeId] : [];
+export async function listCategories(
+    storeId?: string,
+    tab?: 'installed' | 'upgradable'
+): Promise<Category[]> {
+    const args: string[] = [];
+    if (storeId) {
+        args.push('--store', storeId);
+    }
+    if (tab) {
+        args.push('--tab', tab);
+    }
     return executeCommand<Category[]>('list-categories', args);
 }
 

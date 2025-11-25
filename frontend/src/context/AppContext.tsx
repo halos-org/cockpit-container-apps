@@ -124,16 +124,34 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
     }, []);
 
     // Load categories
-    const loadCategories = useCallback(async (storeId?: string) => {
-        setState((prev) => ({ ...prev, loading: true, error: null }));
-        try {
-            const categories = await listCategories(storeId);
-            setState((prev) => ({ ...prev, categories, loading: false }));
-        } catch (e) {
-            const error = e instanceof ContainerAppsError ? e.message : String(e);
-            setState((prev) => ({ ...prev, error, loading: false }));
-        }
-    }, []);
+    const loadCategories = useCallback(
+        async (storeId?: string, installFilter?: 'all' | 'available' | 'installed') => {
+            setState((prev) => {
+                const filter = installFilter ?? prev.installFilter;
+
+                // Map installFilter to backend tab parameter
+                let tabFilter: 'installed' | 'available' | undefined;
+                if (filter === 'installed') {
+                    tabFilter = 'installed';
+                } else if (filter === 'available') {
+                    tabFilter = 'available';
+                }
+
+                // Start loading
+                listCategories(storeId, tabFilter)
+                    .then((categories) => {
+                        setState((current) => ({ ...current, categories, loading: false }));
+                    })
+                    .catch((e) => {
+                        const error = e instanceof ContainerAppsError ? e.message : String(e);
+                        setState((current) => ({ ...current, error, loading: false }));
+                    });
+
+                return { ...prev, loading: true, error: null };
+            });
+        },
+        []
+    );
 
     // Load packages - reads from current state
     const loadPackages = useCallback(async (params?: FilterParams) => {
@@ -233,13 +251,13 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
     // Load initial data on mount
     useEffect(() => {
         void loadStores();
-        void loadCategories(state.activeStore ?? undefined);
+        void loadCategories(state.activeStore ?? undefined, state.installFilter);
     }, [loadStores, loadCategories]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Reload categories when active store changes
+    // Reload categories when active store OR install filter changes
     useEffect(() => {
-        void loadCategories(state.activeStore ?? undefined);
-    }, [state.activeStore, loadCategories]);
+        void loadCategories(state.activeStore ?? undefined, state.installFilter);
+    }, [state.activeStore, state.installFilter, loadCategories]);
 
     // Reload packages when filters change
     useEffect(() => {

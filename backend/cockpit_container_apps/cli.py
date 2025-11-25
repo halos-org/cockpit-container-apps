@@ -46,7 +46,8 @@ Usage: cockpit-container-apps <command> [arguments]
 Commands:
   version                               Show version information
   list-stores                           List available container app stores
-  list-categories [--store ID]          List all categories (auto-discovered from tags)
+  list-categories [--store ID] [--tab TAB]
+                                        List all categories (auto-discovered from tags)
   list-packages-by-category CATEGORY [--store ID]
                                         List all packages in a category
   filter-packages [OPTIONS]             Filter packages by store, repo, category, tab, search, limit
@@ -99,27 +100,27 @@ def main() -> NoReturn:
             result = list_stores.execute()
 
         elif command == "list-categories":
-            # Optional --store parameter
+            # Parse optional --store and --tab parameters
             store_id = None
-            if len(sys.argv) > 2:
-                if sys.argv[2] == "--store":
-                    if len(sys.argv) < 4:
-                        raise APTBridgeError(
-                            "List-categories --store requires a store ID",
-                            code="INVALID_ARGUMENTS",
-                        )
-                    store_id = sys.argv[3]
-                    if len(sys.argv) > 4:
-                        raise APTBridgeError(
-                            f"Unexpected argument: {sys.argv[4]}",
-                            code="INVALID_ARGUMENTS",
-                        )
+            tab = None
+            i = 2
+            while i < len(sys.argv):
+                if sys.argv[i] == "--store":
+                    if i + 1 >= len(sys.argv):
+                        raise APTBridgeError("--store requires a value", code="INVALID_ARGUMENTS")
+                    store_id = sys.argv[i + 1]
+                    i += 2
+                elif sys.argv[i] == "--tab":
+                    if i + 1 >= len(sys.argv):
+                        raise APTBridgeError("--tab requires a value", code="INVALID_ARGUMENTS")
+                    tab = sys.argv[i + 1]
+                    i += 2
                 else:
                     raise APTBridgeError(
-                        f"Unknown parameter: {sys.argv[2]}",
+                        f"Unknown parameter: {sys.argv[i]}",
                         code="INVALID_ARGUMENTS",
                     )
-            result = list_categories.execute(store_id)
+            result = list_categories.execute(store_id, tab)
 
         elif command == "list-packages-by-category":
             if len(sys.argv) < 3:

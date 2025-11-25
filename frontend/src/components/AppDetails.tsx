@@ -61,9 +61,17 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
                         alignItems={{ default: 'alignItemsCenter' }}
                     >
                         <FlexItem>
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsMd' }}>
+                            <Flex
+                                alignItems={{ default: 'alignItemsCenter' }}
+                                spaceItems={{ default: 'spaceItemsMd' }}
+                            >
                                 <FlexItem>
-                                    <CubeIcon style={{ fontSize: '3rem', color: 'var(--pf-v6-global--primary-color--100)' }} />
+                                    <CubeIcon
+                                        style={{
+                                            fontSize: '3rem',
+                                            color: 'var(--pf-v6-global--primary-color--100)',
+                                        }}
+                                    />
                                 </FlexItem>
                                 <FlexItem>
                                     <Title headingLevel="h1">{pkg.name}</Title>
@@ -138,7 +146,9 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
                 {/* Description */}
                 {pkg.summary && (
                     <FlexItem>
-                        <div style={{ fontSize: '1.1rem', color: 'var(--pf-v6-global--Color--200)' }}>
+                        <div
+                            style={{ fontSize: '1.1rem', color: 'var(--pf-v6-global--Color--200)' }}
+                        >
                             {pkg.summary}
                         </div>
                     </FlexItem>
@@ -151,20 +161,24 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
                             <DescriptionList>
                                 <DescriptionListGroup>
                                     <DescriptionListTerm>Version</DescriptionListTerm>
-                                    <DescriptionListDescription>{pkg.version}</DescriptionListDescription>
+                                    <DescriptionListDescription>
+                                        {pkg.version}
+                                    </DescriptionListDescription>
                                 </DescriptionListGroup>
                                 <DescriptionListGroup>
                                     <DescriptionListTerm>Section</DescriptionListTerm>
-                                    <DescriptionListDescription>{pkg.section}</DescriptionListDescription>
+                                    <DescriptionListDescription>
+                                        {pkg.section}
+                                    </DescriptionListDescription>
                                 </DescriptionListGroup>
                                 <DescriptionListGroup>
                                     <DescriptionListTerm>Status</DescriptionListTerm>
                                     <DescriptionListDescription>
-                                        {pkg.installed ? (
-                                            pkg.upgradable ? 'Installed (update available)' : 'Installed'
-                                        ) : (
-                                            'Not installed'
-                                        )}
+                                        {pkg.installed
+                                            ? pkg.upgradable
+                                                ? 'Installed (update available)'
+                                                : 'Installed'
+                                            : 'Not installed'}
                                     </DescriptionListDescription>
                                 </DescriptionListGroup>
                             </DescriptionList>
