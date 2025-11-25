@@ -5,18 +5,19 @@
  * with state management via AppContext.
  */
 
-import { Page, PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
+import { Flex, FlexItem, Page, PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import { CubesIcon, LayerGroupIcon } from '@patternfly/react-icons';
 import React, { useCallback, useState } from 'react';
 import type { Package } from './api/types';
 import { AppDetails } from './components/AppDetails';
 import { AppListView } from './components/AppListView';
 import { CategoriesView } from './components/CategoriesView';
+import { FilterToggleGroup } from './components/FilterToggleGroup';
 import { AppProvider, useApp } from './context/AppContext';
 import { InstalledAppsView } from './views/InstalledAppsView';
 
 // Route types
-type Route = 'store' | 'installed' | 'category' | 'app';
+type Route = 'store' | 'category' | 'app';
 
 interface RouterState {
     route: Route;
@@ -54,14 +55,9 @@ function AppContent(): React.ReactElement {
         if (router.selectedCategory) {
             setRouter({ route: 'category', selectedCategory: router.selectedCategory });
         } else {
-            setRouter({
-                route:
-                    router.route === 'app' && state.activeTab === 'installed'
-                        ? 'installed'
-                        : 'store',
-            });
+            setRouter({ route: 'store' });
         }
-    }, [router.selectedCategory, router.route, state.activeTab]);
+    }, [router.selectedCategory]);
 
     // Handle install action
     const handleInstall = useCallback(
@@ -95,26 +91,27 @@ function AppContent(): React.ReactElement {
         [actions]
     );
 
-    // Handle tab change
-    const handleTabChange = useCallback(
+    // Handle store tab change
+    const handleStoreTabChange = useCallback(
         (_event: React.MouseEvent<HTMLElement, MouseEvent>, tabIndex: number | string) => {
-            if (tabIndex === 0) {
-                // Store tab
-                actions.setActiveTab('available');
+            const storeIndex = typeof tabIndex === 'number' ? tabIndex : parseInt(tabIndex, 10);
+            const selectedStore = state.stores[storeIndex];
+            if (selectedStore) {
+                actions.setActiveStore(selectedStore.id);
                 actions.setActiveCategory(null);
                 setRouter({ route: 'store' });
-            } else if (tabIndex === 1) {
-                // Installed tab
-                actions.setActiveTab('installed');
-                setRouter({ route: 'installed' });
             }
+        },
+        [actions, state.stores]
+    );
+
+    // Handle install filter change
+    const handleFilterChange = useCallback(
+        (filter: 'all' | 'available' | 'installed') => {
+            actions.setInstallFilter(filter);
         },
         [actions]
     );
-
-    // Packages are already filtered by backend based on activeCategory and activeTab
-    const installedPackages = state.packages;
-    const categoryPackages = state.packages;
 
     // Render content based on route
     const renderContent = () => {
@@ -131,30 +128,17 @@ function AppContent(): React.ReactElement {
             );
         }
 
-        // Show installed apps
-        if (router.route === 'installed') {
-            return (
-                <InstalledAppsView
-                    packages={installedPackages}
-                    isLoading={state.packagesLoading}
-                    error={state.packagesError}
-                    onSelect={handleAppSelect}
-                    onRetry={actions.loadPackages}
-                />
-            );
-        }
-
         // Show category apps
         if (router.route === 'category') {
             return (
                 <AppListView
-                    packages={categoryPackages}
+                    packages={state.packages}
                     isLoading={state.packagesLoading}
                     error={state.packagesError}
                     onSelect={handleAppSelect}
                     onRetry={actions.loadPackages}
                     title={state.categories.find((c) => c.id === router.selectedCategory)?.label}
-                    totalCount={categoryPackages.length}
+                    totalCount={state.packages.length}
                 />
             );
         }
@@ -172,40 +156,44 @@ function AppContent(): React.ReactElement {
         );
     };
 
-    // Determine active tab
-    const getActiveTab = () => {
-        if (router.route === 'installed') {
-            return 1;
-        }
-        return 0; // store, category, app
+    // Determine active store tab index
+    const getActiveStoreTab = () => {
+        const activeIndex = state.stores.findIndex((store) => store.id === state.activeStore);
+        return activeIndex >= 0 ? activeIndex : 0;
     };
 
     return (
         <Page id="container-apps" className="pf-m-no-sidebar">
             <PageSection hasBodyWrapper={false}>
-                <Tabs
-                    activeKey={getActiveTab()}
-                    onSelect={handleTabChange}
-                    isBox={false}
-                    aria-label="Container Apps navigation"
-                >
-                    <Tab
-                        eventKey={0}
-                        title={
-                            <TabTitleText>
-                                <LayerGroupIcon /> Store
-                            </TabTitleText>
-                        }
-                    />
-                    <Tab
-                        eventKey={1}
-                        title={
-                            <TabTitleText>
-                                <CubesIcon /> Installed
-                            </TabTitleText>
-                        }
-                    />
-                </Tabs>
+                <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }}>
+                    {/* Store tabs */}
+                    {state.stores.length > 0 && (
+                        <FlexItem>
+                            <Tabs
+                                activeKey={getActiveStoreTab()}
+                                onSelect={handleStoreTabChange}
+                                isBox={false}
+                                aria-label="Container store selection"
+                            >
+                                {state.stores.map((store, index) => (
+                                    <Tab
+                                        key={store.id}
+                                        eventKey={index}
+                                        title={<TabTitleText>{store.name}</TabTitleText>}
+                                    />
+                                ))}
+                            </Tabs>
+                        </FlexItem>
+                    )}
+
+                    {/* Install filter toggle */}
+                    <FlexItem>
+                        <FilterToggleGroup
+                            selectedFilter={state.installFilter}
+                            onFilterChange={handleFilterChange}
+                        />
+                    </FlexItem>
+                </Flex>
             </PageSection>
             {renderContent()}
         </Page>

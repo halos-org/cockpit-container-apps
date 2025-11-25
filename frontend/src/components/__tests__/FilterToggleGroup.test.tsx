@@ -19,21 +19,21 @@ describe('FilterToggleGroup', () => {
     it('shows "All Apps" as selected by default', () => {
         render(<FilterToggleGroup selectedFilter="all" onFilterChange={vi.fn()} />);
 
-        const allAppsButton = screen.getByText('All Apps');
+        const allAppsButton = screen.getByText('All Apps').closest('button');
         expect(allAppsButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('shows "Available" as selected when prop is "available"', () => {
         render(<FilterToggleGroup selectedFilter="available" onFilterChange={vi.fn()} />);
 
-        const availableButton = screen.getByText('Available');
+        const availableButton = screen.getByText('Available').closest('button');
         expect(availableButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('shows "Installed" as selected when prop is "installed"', () => {
         render(<FilterToggleGroup selectedFilter="installed" onFilterChange={vi.fn()} />);
 
-        const installedButton = screen.getByText('Installed');
+        const installedButton = screen.getByText('Installed').closest('button');
         expect(installedButton).toHaveAttribute('aria-pressed', 'true');
     });
 

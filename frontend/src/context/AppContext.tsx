@@ -9,10 +9,12 @@ import {
     loadActiveCategory,
     loadActiveStore,
     loadActiveTab,
+    loadInstallFilter,
     loadSearchQuery,
     saveActiveCategory,
     saveActiveStore,
     saveActiveTab,
+    saveInstallFilter,
     saveSearchQuery,
 } from '../utils/storage';
 
@@ -28,7 +30,8 @@ export interface AppState {
     // Filters
     activeStore: string | null;
     activeCategory: string | null;
-    activeTab: 'installed' | 'available';
+    activeTab: 'installed' | 'available'; // Deprecated - use installFilter
+    installFilter: 'all' | 'available' | 'installed';
     searchQuery: string;
 
     // UI state
@@ -54,7 +57,8 @@ export interface AppActions {
     // Filter actions
     setActiveStore: (storeId: string | null) => void;
     setActiveCategory: (categoryId: string | null) => void;
-    setActiveTab: (tab: 'installed' | 'available') => void;
+    setActiveTab: (tab: 'installed' | 'available') => void; // Deprecated - use setInstallFilter
+    setInstallFilter: (filter: 'all' | 'available' | 'installed') => void;
     setSearchQuery: (query: string) => void;
 
     // Utility actions
@@ -83,6 +87,7 @@ const initialState: AppState = {
     activeStore: loadActiveStore(),
     activeCategory: loadActiveCategory(),
     activeTab: loadActiveTab() || 'available',
+    installFilter: loadInstallFilter(),
     searchQuery: loadSearchQuery(),
     loading: true, // Start with loading state to show spinner on mount
     error: null,
@@ -133,10 +138,18 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
     // Load packages - reads from current state
     const loadPackages = useCallback(async (params?: FilterParams) => {
         setState((prev) => {
+            // Map installFilter to backend tab parameter
+            let tabFilter: 'installed' | 'upgradable' | undefined;
+            const filter = prev.installFilter;
+            if (filter === 'installed') {
+                tabFilter = 'installed';
+            }
+            // 'all' and 'available' → no tab filter (backend returns all packages)
+
             const filterParams: FilterParams = {
                 store_id: params?.store_id ?? prev.activeStore ?? undefined,
                 category_id: params?.category_id ?? prev.activeCategory ?? undefined,
-                tab: params?.tab ?? (prev.activeTab !== 'available' ? prev.activeTab : undefined),
+                tab: params?.tab ?? tabFilter,
                 search_query: params?.search_query ?? (prev.searchQuery || undefined),
                 limit: params?.limit ?? 1000,
             };
@@ -144,10 +157,16 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
             // Start loading
             filterPackages(filterParams)
                 .then((response) => {
+                    // Filter client-side for 'available' (non-installed packages)
+                    let filteredPackages = response.packages;
+                    if (filter === 'available') {
+                        filteredPackages = response.packages.filter((pkg) => !pkg.installed);
+                    }
+
                     setState((current) => ({
                         ...current,
-                        packages: response.packages,
-                        totalPackageCount: response.total_count,
+                        packages: filteredPackages,
+                        totalPackageCount: filteredPackages.length,
                         limitedResults: response.limited,
                         packagesLoading: false,
                     }));
@@ -182,6 +201,12 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
     const setActiveTab = useCallback((tab: 'installed' | 'available') => {
         setState((prev) => ({ ...prev, activeTab: tab }));
         saveActiveTab(tab);
+    }, []);
+
+    // Set install filter
+    const setInstallFilter = useCallback((filter: 'all' | 'available' | 'installed') => {
+        setState((prev) => ({ ...prev, installFilter: filter }));
+        saveInstallFilter(filter);
     }, []);
 
     // Set search query
@@ -219,7 +244,14 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
     // Reload packages when filters change
     useEffect(() => {
         void loadPackages();
-    }, [loadPackages, state.activeStore, state.activeCategory, state.activeTab, state.searchQuery]);
+    }, [
+        loadPackages,
+        state.activeStore,
+        state.activeCategory,
+        state.activeTab,
+        state.installFilter,
+        state.searchQuery,
+    ]);
 
     // Memoize actions to prevent unnecessary re-renders
     const actions: AppActions = useMemo(
@@ -230,6 +262,7 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
             setActiveStore,
             setActiveCategory,
             setActiveTab,
+            setInstallFilter,
             setSearchQuery,
             clearError,
             refresh,
@@ -241,6 +274,7 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
             setActiveStore,
             setActiveCategory,
             setActiveTab,
+            setInstallFilter,
             setSearchQuery,
             clearError,
             refresh,

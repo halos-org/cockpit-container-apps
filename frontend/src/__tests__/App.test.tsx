@@ -5,22 +5,21 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { App } from '../App';
+import * as api from '../api';
 
 // Mock the API
-const mockListStores = vi.fn().mockResolvedValue([
-    {
-        id: 'halos-marine',
-        name: 'HaLOS Marine',
-        description: null,
-        icon: null,
-        banner: null,
-        filters: { sections: [], priorities: [] },
-        category_metadata: null,
-    },
-]);
-
 vi.mock('../api', () => ({
-    listStores: mockListStores,
+    listStores: vi.fn().mockResolvedValue([
+        {
+            id: 'halos-marine',
+            name: 'HaLOS Marine',
+            description: null,
+            icon: null,
+            banner: null,
+            filters: { sections: [], priorities: [] },
+            category_metadata: null,
+        },
+    ]),
     listCategories: vi.fn().mockResolvedValue([
         {
             id: 'navigation',
@@ -78,25 +77,11 @@ describe('App', () => {
         expect(screen.getByRole('main')).toBeInTheDocument();
     });
 
-    it('renders sidebar navigation', async () => {
-        render(<App />);
-
-        // Should have navigation items in sidebar (nav items render as buttons in PF6)
-        expect(await screen.findByText('Store')).toBeInTheDocument();
-        expect(await screen.findByText('Installed')).toBeInTheDocument();
-    });
-
     it('shows store view by default', async () => {
         render(<App />);
 
         // Store view shows categories with Browse Categories title
         expect(await screen.findByText(/browse categories/i)).toBeInTheDocument();
-    });
-
-    it('renders application title', async () => {
-        render(<App />);
-
-        expect(screen.getByText(/container apps/i)).toBeInTheDocument();
     });
 
     describe('Store Tabs', () => {
@@ -109,7 +94,7 @@ describe('App', () => {
 
         it('renders multiple store tabs when multiple stores exist', async () => {
             // Mock multiple stores
-            mockListStores.mockResolvedValueOnce([
+            vi.mocked(api.listStores).mockResolvedValueOnce([
                 {
                     id: 'halos-marine',
                     name: 'HaLOS Marine',
@@ -149,7 +134,7 @@ describe('App', () => {
         it('has "All Apps" selected by default in FilterToggleGroup', async () => {
             render(<App />);
 
-            const allAppsButton = await screen.findByText('All Apps');
+            const allAppsButton = (await screen.findByText('All Apps')).closest('button');
             expect(allAppsButton).toHaveAttribute('aria-pressed', 'true');
         });
     });
