@@ -8,10 +8,12 @@ import {
     loadActiveCategory,
     loadActiveStore,
     loadActiveTab,
+    loadInstallFilter,
     loadSearchQuery,
     saveActiveCategory,
     saveActiveStore,
     saveActiveTab,
+    saveInstallFilter,
     saveSearchQuery,
 } from '../storage';
 
@@ -111,6 +113,37 @@ describe('Storage Utilities', () => {
         });
     });
 
+    describe('installFilter', () => {
+        it('should save and load install filter', () => {
+            saveInstallFilter('available');
+            expect(loadInstallFilter()).toBe('available');
+            expect(localStorageMock.setItem).toHaveBeenCalledWith(
+                'cockpit-container-apps:installFilter',
+                'available'
+            );
+        });
+
+        it('should handle all three filter values', () => {
+            saveInstallFilter('all');
+            expect(loadInstallFilter()).toBe('all');
+
+            saveInstallFilter('available');
+            expect(loadInstallFilter()).toBe('available');
+
+            saveInstallFilter('installed');
+            expect(loadInstallFilter()).toBe('installed');
+        });
+
+        it('should return "all" when no filter saved', () => {
+            expect(loadInstallFilter()).toBe('all');
+        });
+
+        it('should return "all" for invalid filter value', () => {
+            localStorageMock.setItem('cockpit-container-apps:installFilter', 'invalid');
+            expect(loadInstallFilter()).toBe('all');
+        });
+    });
+
     describe('searchQuery', () => {
         it('should save and load search query', () => {
             saveSearchQuery('signal');
@@ -133,6 +166,7 @@ describe('Storage Utilities', () => {
             saveActiveStore('marine');
             saveActiveCategory('navigation');
             saveActiveTab('installed');
+            saveInstallFilter('installed');
             saveSearchQuery('signal');
 
             clearAllState();
@@ -140,6 +174,7 @@ describe('Storage Utilities', () => {
             expect(loadActiveStore()).toBeNull();
             expect(loadActiveCategory()).toBeNull();
             expect(loadActiveTab()).toBeNull();
+            expect(loadInstallFilter()).toBe('all');
             expect(loadSearchQuery()).toBe('');
         });
     });

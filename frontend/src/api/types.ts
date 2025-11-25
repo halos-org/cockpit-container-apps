@@ -87,6 +87,9 @@ export interface Category {
     icon: string | null;
     description: string | null;
     count: number;
+    count_all: number;
+    count_available: number;
+    count_installed: number;
 }
 
 /**

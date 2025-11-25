@@ -25,12 +25,15 @@ def execute(store_id: str | None = None) -> list[dict[str, Any]]:
     matching the store filter are considered. Category metadata (label,
     icon, description) can be enhanced via store configuration.
 
+    Returns all count states (all, available, installed) in a single response
+    to enable instant filter switching without reloading.
+
     Args:
         store_id: Optional store ID to filter packages. If None, uses all packages.
 
     Returns:
-        List of category dictionaries with id, label, icon, description, and count,
-        sorted alphabetically by label.
+        List of category dictionaries with id, label, icon, description, count,
+        count_all, count_available, and count_installed, sorted alphabetically by label.
 
     Raises:
         APTBridgeError: If store_id is invalid
@@ -74,8 +77,11 @@ def execute(store_id: str | None = None) -> list[dict[str, Any]]:
                     meta.id: meta for meta in store_config.category_metadata
                 }
 
-        # Collect categories with counts
-        category_counts: dict[str, int] = {}
+        # Collect categories with counts for all states (all, available, installed)
+        # This allows frontend to switch between states without reloading
+        category_counts_all: dict[str, int] = {}
+        category_counts_available: dict[str, int] = {}
+        category_counts_installed: dict[str, int] = {}
 
         for pkg in cache:
             # Apply store filter if configured
@@ -89,15 +95,41 @@ def execute(store_id: str | None = None) -> list[dict[str, Any]]:
             # Extract category tags
             categories = get_tags_by_facet(pkg, "category")
 
+            # Count for all packages
             for category_id in categories:
-                category_counts[category_id] = category_counts.get(category_id, 0) + 1
+                category_counts_all[category_id] = category_counts_all.get(category_id, 0) + 1
 
-        # Build category list with metadata
+            # Count for available (not installed) packages
+            if not pkg.is_installed:
+                for category_id in categories:
+                    category_counts_available[category_id] = (
+                        category_counts_available.get(category_id, 0) + 1
+                    )
+
+            # Count for installed packages
+            if pkg.is_installed:
+                for category_id in categories:
+                    category_counts_installed[category_id] = (
+                        category_counts_installed.get(category_id, 0) + 1
+                    )
+
+        # Build category list with metadata including ALL count states
+        # This allows frontend to switch between filters without reloading
         categories = []
 
-        for category_id, count in category_counts.items():
+        # Get all unique category IDs from all count dictionaries
+        all_category_ids = set(category_counts_all.keys()) | \
+                          set(category_counts_available.keys()) | \
+                          set(category_counts_installed.keys())
+
+        for category_id in all_category_ids:
             # Check if we have metadata for this category
             metadata = category_metadata_map.get(category_id)
+
+            # Get counts for all three states
+            count_all = category_counts_all.get(category_id, 0)
+            count_available = category_counts_available.get(category_id, 0)
+            count_installed = category_counts_installed.get(category_id, 0)
 
             if metadata:
                 # Use metadata from store config
@@ -107,7 +139,10 @@ def execute(store_id: str | None = None) -> list[dict[str, Any]]:
                         "label": metadata.label,
                         "icon": metadata.icon,
                         "description": metadata.description,
-                        "count": count,
+                        "count": count_all,
+                        "count_all": count_all,
+                        "count_available": count_available,
+                        "count_installed": count_installed,
                     }
                 )
             else:
@@ -118,7 +153,10 @@ def execute(store_id: str | None = None) -> list[dict[str, Any]]:
                         "label": derive_category_label(category_id),
                         "icon": None,
                         "description": None,
-                        "count": count,
+                        "count": count_all,
+                        "count_all": count_all,
+                        "count_available": count_available,
+                        "count_installed": count_installed,
                     }
                 )
 

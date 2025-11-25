@@ -9,6 +9,7 @@ const KEYS = {
     ACTIVE_STORE: `${STORAGE_PREFIX}activeStore`,
     ACTIVE_CATEGORY: `${STORAGE_PREFIX}activeCategory`,
     ACTIVE_TAB: `${STORAGE_PREFIX}activeTab`,
+    INSTALL_FILTER: `${STORAGE_PREFIX}installFilter`,
     SEARCH_QUERY: `${STORAGE_PREFIX}searchQuery`,
 } as const;
 
@@ -146,6 +147,24 @@ export function loadActiveTab(): 'installed' | 'available' | null {
         return tab;
     }
     return null;
+}
+
+/**
+ * Save install filter
+ */
+export function saveInstallFilter(filter: 'all' | 'available' | 'installed'): void {
+    saveItem(KEYS.INSTALL_FILTER, filter);
+}
+
+/**
+ * Load install filter
+ */
+export function loadInstallFilter(): 'all' | 'available' | 'installed' {
+    const filter = loadItem(KEYS.INSTALL_FILTER);
+    if (filter === 'all' || filter === 'available' || filter === 'installed') {
+        return filter;
+    }
+    return 'all'; // Default to 'all' if not set or invalid
 }
 
 /**

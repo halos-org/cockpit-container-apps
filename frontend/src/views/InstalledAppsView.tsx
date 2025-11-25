@@ -49,7 +49,8 @@ export const InstalledAppsView: React.FC<InstalledAppsViewProps> = ({
 }) => {
     const [activeTab, setActiveTab] = useState<FilterTab>('all');
 
-    const filteredPackages = activeTab === 'updates' ? packages.filter((pkg) => pkg.upgradable) : packages;
+    const filteredPackages =
+        activeTab === 'updates' ? packages.filter((pkg) => pkg.upgradable) : packages;
 
     const upgradableCount = packages.filter((pkg) => pkg.upgradable).length;
 
@@ -136,7 +137,15 @@ export const InstalledAppsView: React.FC<InstalledAppsViewProps> = ({
                     title={
                         <TabTitleText>
                             Updates{' '}
-                            <Badge isRead={upgradableCount === 0} style={{ backgroundColor: upgradableCount > 0 ? 'var(--pf-v6-global--info-color--100)' : undefined }}>
+                            <Badge
+                                isRead={upgradableCount === 0}
+                                style={{
+                                    backgroundColor:
+                                        upgradableCount > 0
+                                            ? 'var(--pf-v6-global--info-color--100)'
+                                            : undefined,
+                                }}
+                            >
                                 {upgradableCount}
                             </Badge>
                         </TabTitleText>

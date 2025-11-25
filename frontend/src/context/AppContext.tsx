@@ -9,10 +9,12 @@ import {
     loadActiveCategory,
     loadActiveStore,
     loadActiveTab,
+    loadInstallFilter,
     loadSearchQuery,
     saveActiveCategory,
     saveActiveStore,
     saveActiveTab,
+    saveInstallFilter,
     saveSearchQuery,
 } from '../utils/storage';
 
@@ -28,7 +30,8 @@ export interface AppState {
     // Filters
     activeStore: string | null;
     activeCategory: string | null;
-    activeTab: 'installed' | 'available';
+    activeTab: 'installed' | 'available'; // Deprecated - use installFilter
+    installFilter: 'all' | 'available' | 'installed';
     searchQuery: string;
 
     // UI state
@@ -54,7 +57,8 @@ export interface AppActions {
     // Filter actions
     setActiveStore: (storeId: string | null) => void;
     setActiveCategory: (categoryId: string | null) => void;
-    setActiveTab: (tab: 'installed' | 'available') => void;
+    setActiveTab: (tab: 'installed' | 'available') => void; // Deprecated - use setInstallFilter
+    setInstallFilter: (filter: 'all' | 'available' | 'installed') => void;
     setSearchQuery: (query: string) => void;
 
     // Utility actions
@@ -83,6 +87,7 @@ const initialState: AppState = {
     activeStore: loadActiveStore(),
     activeCategory: loadActiveCategory(),
     activeTab: loadActiveTab() || 'available',
+    installFilter: loadInstallFilter(),
     searchQuery: loadSearchQuery(),
     loading: true, // Start with loading state to show spinner on mount
     error: null,
@@ -118,25 +123,41 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
         }
     }, []);
 
-    // Load categories
-    const loadCategories = useCallback(async (storeId?: string) => {
-        setState((prev) => ({ ...prev, loading: true, error: null }));
-        try {
-            const categories = await listCategories(storeId);
-            setState((prev) => ({ ...prev, categories, loading: false }));
-        } catch (e) {
-            const error = e instanceof ContainerAppsError ? e.message : String(e);
-            setState((prev) => ({ ...prev, error, loading: false }));
-        }
-    }, []);
+    // Load categories - now loads all count states at once
+    const loadCategories = useCallback(
+        async (storeId?: string) => {
+            setState((prev) => {
+                // Load categories without tab filter - backend returns all count states
+                listCategories(storeId)
+                    .then((categories) => {
+                        setState((current) => ({ ...current, categories, loading: false }));
+                    })
+                    .catch((e) => {
+                        const error = e instanceof ContainerAppsError ? e.message : String(e);
+                        setState((current) => ({ ...current, error, loading: false }));
+                    });
+
+                return { ...prev, loading: true, error: null };
+            });
+        },
+        []
+    );
 
     // Load packages - reads from current state
     const loadPackages = useCallback(async (params?: FilterParams) => {
         setState((prev) => {
+            // Map installFilter to backend tab parameter
+            let tabFilter: 'installed' | 'upgradable' | undefined;
+            const filter = prev.installFilter;
+            if (filter === 'installed') {
+                tabFilter = 'installed';
+            }
+            // 'all' and 'available' → no tab filter (backend returns all packages)
+
             const filterParams: FilterParams = {
                 store_id: params?.store_id ?? prev.activeStore ?? undefined,
                 category_id: params?.category_id ?? prev.activeCategory ?? undefined,
-                tab: params?.tab ?? (prev.activeTab !== 'available' ? prev.activeTab : undefined),
+                tab: params?.tab ?? tabFilter,
                 search_query: params?.search_query ?? (prev.searchQuery || undefined),
                 limit: params?.limit ?? 1000,
             };
@@ -144,10 +165,16 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
             // Start loading
             filterPackages(filterParams)
                 .then((response) => {
+                    // Filter client-side for 'available' (non-installed packages)
+                    let filteredPackages = response.packages;
+                    if (filter === 'available') {
+                        filteredPackages = response.packages.filter((pkg) => !pkg.installed);
+                    }
+
                     setState((current) => ({
                         ...current,
-                        packages: response.packages,
-                        totalPackageCount: response.total_count,
+                        packages: filteredPackages,
+                        totalPackageCount: filteredPackages.length,
                         limitedResults: response.limited,
                         packagesLoading: false,
                     }));
@@ -184,6 +211,12 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
         saveActiveTab(tab);
     }, []);
 
+    // Set install filter
+    const setInstallFilter = useCallback((filter: 'all' | 'available' | 'installed') => {
+        setState((prev) => ({ ...prev, installFilter: filter }));
+        saveInstallFilter(filter);
+    }, []);
+
     // Set search query
     const setSearchQuery = useCallback((query: string) => {
         setState((prev) => ({ ...prev, searchQuery: query }));
@@ -211,7 +244,7 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
         void loadCategories(state.activeStore ?? undefined);
     }, [loadStores, loadCategories]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Reload categories when active store changes
+    // Reload categories ONLY when active store changes (not filter - we have all counts cached)
     useEffect(() => {
         void loadCategories(state.activeStore ?? undefined);
     }, [state.activeStore, loadCategories]);
@@ -219,7 +252,30 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
     // Reload packages when filters change
     useEffect(() => {
         void loadPackages();
-    }, [loadPackages, state.activeStore, state.activeCategory, state.activeTab, state.searchQuery]);
+    }, [
+        loadPackages,
+        state.activeStore,
+        state.activeCategory,
+        state.activeTab,
+        state.installFilter,
+        state.searchQuery,
+    ]);
+
+    // Derive categories with correct counts based on current filter
+    // This avoids reloading categories on filter changes
+    const categoriesWithFilteredCounts = useMemo(() => {
+        return state.categories.map((category) => {
+            let count: number;
+            if (state.installFilter === 'installed') {
+                count = category.count_installed;
+            } else if (state.installFilter === 'available') {
+                count = category.count_available;
+            } else {
+                count = category.count_all;
+            }
+            return { ...category, count };
+        });
+    }, [state.categories, state.installFilter]);
 
     // Memoize actions to prevent unnecessary re-renders
     const actions: AppActions = useMemo(
@@ -230,6 +286,7 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
             setActiveStore,
             setActiveCategory,
             setActiveTab,
+            setInstallFilter,
             setSearchQuery,
             clearError,
             refresh,
@@ -241,13 +298,20 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
             setActiveStore,
             setActiveCategory,
             setActiveTab,
+            setInstallFilter,
             setSearchQuery,
             clearError,
             refresh,
         ]
     );
 
-    return <AppContext.Provider value={{ state, actions }}>{children}</AppContext.Provider>;
+    return (
+        <AppContext.Provider
+            value={{ state: { ...state, categories: categoriesWithFilteredCounts }, actions }}
+        >
+            {children}
+        </AppContext.Provider>
+    );
 }
 
 /**

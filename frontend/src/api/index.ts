@@ -127,9 +127,17 @@ export async function listStores(): Promise<Store[]> {
 
 /**
  * List categories for a store (auto-discovered from package tags)
+ *
+ * Returns all count states (all, available, installed) in a single response,
+ * enabling instant filter switching without reloading categories.
  */
-export async function listCategories(storeId?: string): Promise<Category[]> {
-    const args = storeId ? ['--store', storeId] : [];
+export async function listCategories(
+    storeId?: string
+): Promise<Category[]> {
+    const args: string[] = [];
+    if (storeId) {
+        args.push('--store', storeId);
+    }
     return executeCommand<Category[]>('list-categories', args);
 }
 
@@ -173,6 +181,197 @@ export async function filterPackages(params: FilterParams = {}): Promise<FilterP
     }
 
     return executeCommand<FilterPackagesResponse>('filter-packages', args);
+}
+
+/**
+ * Progress callback for install/remove operations
+ */
+export interface ProgressCallback {
+    (percentage: number, message: string): void;
+}
+
+/**
+ * Install a package with progress reporting
+ */
+export async function installPackage(
+    packageName: string,
+    onProgress?: ProgressCallback
+): Promise<void> {
+    return new Promise((resolve, reject) => {
+        let settled = false;
+
+        const proc = cockpit.spawn(['cockpit-container-apps', 'install', packageName], {
+            err: 'out',
+            superuser: 'require',
+        });
+
+        let stdout = '';
+
+        proc.stream((data: string) => {
+            stdout += data;
+
+            // Process complete JSON lines
+            const lines = stdout.split('\n');
+            stdout = lines.pop() || ''; // Keep incomplete line in buffer
+
+            for (const line of lines) {
+                if (!line.trim()) continue;
+
+                try {
+                    const parsed = JSON.parse(line);
+
+                    // Handle progress updates
+                    if (parsed.type === 'progress' && onProgress) {
+                        onProgress(parsed.percentage, parsed.message);
+                    }
+
+                    // Handle success response
+                    if (parsed.success) {
+                        if (!settled) {
+                            settled = true;
+                            resolve();
+                        }
+                    }
+
+                    // Handle error response
+                    if (parsed.error) {
+                        if (!settled) {
+                            settled = true;
+                            reject(
+                                new ContainerAppsError(parsed.error, parsed.code, parsed.details)
+                            );
+                        }
+                    }
+                } catch (e) {
+                    // Ignore parse errors for incomplete lines
+                }
+            }
+        });
+
+        proc.done(() => {
+            if (!settled) {
+                settled = true;
+                resolve();
+            }
+        });
+
+        proc.fail((error: unknown, data: string | null) => {
+            if (settled) return;
+            settled = true;
+
+            const errorStr = String(error || data || '');
+
+            // Try to parse error as JSON
+            try {
+                const parsed = JSON.parse(errorStr);
+                if (parsed.error) {
+                    reject(new ContainerAppsError(parsed.error, parsed.code, parsed.details));
+                    return;
+                }
+            } catch {
+                // Not JSON, treat as plain error message
+            }
+
+            reject(
+                new ContainerAppsError(
+                    errorStr || 'Install command failed',
+                    'INSTALL_FAILED'
+                )
+            );
+        });
+    });
+}
+
+/**
+ * Remove a package with progress reporting
+ */
+export async function removePackage(
+    packageName: string,
+    onProgress?: ProgressCallback
+): Promise<void> {
+    return new Promise((resolve, reject) => {
+        let settled = false;
+
+        const proc = cockpit.spawn(['cockpit-container-apps', 'remove', packageName], {
+            err: 'out',
+            superuser: 'require',
+        });
+
+        let stdout = '';
+
+        proc.stream((data: string) => {
+            stdout += data;
+
+            // Process complete JSON lines
+            const lines = stdout.split('\n');
+            stdout = lines.pop() || ''; // Keep incomplete line in buffer
+
+            for (const line of lines) {
+                if (!line.trim()) continue;
+
+                try {
+                    const parsed = JSON.parse(line);
+
+                    // Handle progress updates
+                    if (parsed.type === 'progress' && onProgress) {
+                        onProgress(parsed.percentage, parsed.message);
+                    }
+
+                    // Handle success response
+                    if (parsed.success) {
+                        if (!settled) {
+                            settled = true;
+                            resolve();
+                        }
+                    }
+
+                    // Handle error response
+                    if (parsed.error) {
+                        if (!settled) {
+                            settled = true;
+                            reject(
+                                new ContainerAppsError(parsed.error, parsed.code, parsed.details)
+                            );
+                        }
+                    }
+                } catch (e) {
+                    // Ignore parse errors for incomplete lines
+                }
+            }
+        });
+
+        proc.done(() => {
+            if (!settled) {
+                settled = true;
+                resolve();
+            }
+        });
+
+        proc.fail((error: unknown, data: string | null) => {
+            if (settled) return;
+            settled = true;
+
+            const errorStr = String(error || data || '');
+
+            // Try to parse error as JSON
+            try {
+                const parsed = JSON.parse(errorStr);
+                if (parsed.error) {
+                    reject(new ContainerAppsError(parsed.error, parsed.code, parsed.details));
+                    return;
+                }
+            } catch {
+                // Not JSON, treat as plain error message
+            }
+
+            reject(
+                new ContainerAppsError(
+                    errorStr || 'Remove command failed',
+                    'REMOVE_FAILED'
+                )
+            );
+        });
+    });
 }
 
 /**
