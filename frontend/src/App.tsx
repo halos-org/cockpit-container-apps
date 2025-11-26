@@ -17,7 +17,7 @@ import {
     Tooltip,
 } from '@patternfly/react-core';
 import { SyncIcon } from '@patternfly/react-icons';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { Package } from './api/types';
 import { AppDetails } from './components/AppDetails';
 import { AppListView } from './components/AppListView';
@@ -45,6 +45,23 @@ function AppContent(): React.ReactElement {
 
     // Centralized URL-based navigation management
     useUrlBasedNavigation({ state, actions, setRouter });
+
+    // Sync selected package with state updates (for install/uninstall refresh)
+    useEffect(() => {
+        if (router.route === 'app' && router.selectedPackage) {
+            // Search in allPackages (unfiltered) to find the updated package
+            // Don't use state.packages as it may be filtered out after install/uninstall
+            const updatedPkg = state.allPackages.find((p) => p.name === router.selectedPackage?.name);
+            if (updatedPkg && updatedPkg.installed !== router.selectedPackage.installed) {
+                // Package install state changed - update router
+                setRouter((current) =>
+                    current.route === 'app'
+                        ? { ...current, selectedPackage: updatedPkg }
+                        : current
+                );
+            }
+        }
+    }, [state.allPackages, router.route, router.selectedPackage]);
 
     // Navigate to a category's apps
     const handleCategorySelect = useCallback(
@@ -118,29 +135,29 @@ function AppContent(): React.ReactElement {
                 // Refresh data to get updated package states
                 await actions.refresh();
 
-                // Update the selected package with fresh data from reloaded state
-                setRouter((currentRouter) => {
-                    if (currentRouter.route === 'app' && currentRouter.selectedPackage) {
-                        // Find the updated package in state.packages
-                        const updatedPkg = state.packages.find((p) => p.name === pkg.name);
-                        if (updatedPkg) {
-                            // Update router with fresh package data
-                            return {
-                                ...currentRouter,
-                                selectedPackage: updatedPkg,
-                            };
+                // Update router with the new package state immediately
+                // Wait a tick for state to update, then find the updated package
+                setTimeout(() => {
+                    setRouter((current) => {
+                        if (current.route === 'app' && current.selectedPackage) {
+                            const updatedPkg = state.allPackages.find(
+                                (p) => p.name === current.selectedPackage?.name
+                            );
+                            if (updatedPkg) {
+                                return { ...current, selectedPackage: updatedPkg };
+                            }
                         }
-                    }
-                    return currentRouter;
-                });
+                        return current;
+                    });
+                    setActionInProgress(false);
+                }, 0);
             } catch (error) {
                 console.error('Install failed:', error);
-                throw error;
-            } finally {
                 setActionInProgress(false);
+                throw error;
             }
         },
-        [actions, state.packages]
+        [actions, state.allPackages]
     );
 
     // Handle uninstall action
@@ -171,11 +188,11 @@ function AppContent(): React.ReactElement {
                     state.installFilter
                 );
                 navigateTo(location.path, location.options);
+                setActionInProgress(false);
             } catch (error) {
                 console.error('Remove failed:', error);
-                throw error;
-            } finally {
                 setActionInProgress(false);
+                throw error;
             }
         },
         [actions, state.activeCategory, state.activeStore, state.installFilter]
@@ -187,6 +204,11 @@ function AppContent(): React.ReactElement {
             const storeIndex = typeof tabIndex === 'number' ? tabIndex : parseInt(tabIndex, 10);
             const selectedStore = state.stores[storeIndex];
             if (selectedStore) {
+                // Don't reload if clicking on already-active store
+                if (selectedStore.id === state.activeStore) {
+                    return;
+                }
+
                 actions.setActiveStore(selectedStore.id);
                 actions.setActiveCategory(null);
                 const newRouter: RouterState = { route: 'store' };
@@ -201,7 +223,7 @@ function AppContent(): React.ReactElement {
                 navigateTo(location.path, location.options);
             }
         },
-        [actions, state.stores, state.installFilter]
+        [actions, state.stores, state.installFilter, state.activeStore]
     );
 
     // Handle install filter change

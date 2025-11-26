@@ -45,9 +45,6 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
     onRetry,
     title,
 }) => {
-    // Debug: log loading state
-    console.log('CategoriesView render:', { isLoading, categoriesCount: categories.length, error });
-
     // Loading state
     if (isLoading) {
         return (

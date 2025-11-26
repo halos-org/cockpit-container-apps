@@ -15,6 +15,79 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def get_package_names_by_origin_fast(origin_name: str) -> set[str]:
+    """Fast origin filtering using apt_pkg (low-level API).
+
+    This is much faster than iterating through apt.Cache() because it works
+    at the C++ level, avoiding Python FFI overhead.
+
+    Args:
+        origin_name: The origin name to filter by (e.g., "Hat Labs")
+
+    Returns:
+        Set of package names from the specified origin
+    """
+    import apt_pkg
+    import os
+
+    # Suppress APT progress output to avoid polluting JSON stdout
+    # APT writes directly to file descriptors, so we need to redirect at OS level
+    old_stdout_fd = os.dup(1)  # Save stdout
+    old_stderr_fd = os.dup(2)  # Save stderr
+
+    devnull_fd = os.open(os.devnull, os.O_WRONLY)
+
+    try:
+        # Redirect stdout/stderr to /dev/null during APT operations
+        os.dup2(devnull_fd, 1)
+        os.dup2(devnull_fd, 2)
+
+        apt_pkg.init()
+        cache = apt_pkg.Cache()
+    finally:
+        # Restore original stdout/stderr
+        os.dup2(old_stdout_fd, 1)
+        os.dup2(old_stderr_fd, 2)
+
+        # Close file descriptors
+        os.close(devnull_fd)
+        os.close(old_stdout_fd)
+        os.close(old_stderr_fd)
+
+    matching_names = set()
+
+    # Iterate at C++ level - much faster than apt.Cache
+    for pkg in cache.packages:
+        # Check if package has a candidate version
+        if not pkg.current_ver and not pkg.has_versions:
+            continue
+
+        # Get the version to check (prefer current, fall back to any version)
+        if pkg.current_ver:
+            ver = pkg.current_ver
+        elif pkg.version_list:
+            ver = pkg.version_list[0]
+        else:
+            continue
+
+        # Check origins in version files
+        for ver_file, _index in ver.file_list:
+            # Check origin field first, fall back to label
+            pkg_origin = ver_file.origin or ver_file.label or ""
+
+            if pkg_origin == origin_name:
+                matching_names.add(pkg.name)
+                break  # Found a match, no need to check other files
+
+    logger.info(
+        "Fast origin filter found %d packages from '%s'",
+        len(matching_names),
+        origin_name,
+    )
+
+    return matching_names
+
+
 def _get_package_origin(package: apt.Package) -> str | None:
     """Extract origin from package candidate.
 
@@ -64,8 +137,8 @@ def get_packages_by_origin(cache: apt.Cache, origin_name: str) -> list[apt.Packa
     """Get all packages from a specific origin.
 
     This function provides an optimized way to filter packages by origin,
-    avoiding the need to iterate through the entire APT cache and check
-    each package individually.
+    using the fast apt_pkg API to get package names, then only loading
+    those specific packages from the apt.Cache.
 
     Args:
         cache: APT cache object
@@ -80,28 +153,33 @@ def get_packages_by_origin(cache: apt.Cache, origin_name: str) -> list[apt.Packa
         >>> print(f"Found {len(marine_packages)} packages from Hat Labs")
         Found 20 packages from Hat Labs
     """
-    matching_packages = []
+    # Use fast apt_pkg filtering to get package names
+    matching_names = get_package_names_by_origin_fast(origin_name)
 
-    for package in cache:
-        package_origin = _get_package_origin(package)
-        if package_origin and package_origin == origin_name:
-            matching_packages.append(package)
+    # Only load the specific packages we need from apt.Cache
+    matching_packages = []
+    for name in matching_names:
+        try:
+            pkg = cache[name]
+            matching_packages.append(pkg)
+        except KeyError:
+            logger.debug("Package %s not found in cache", name)
+            continue
 
     logger.info(
-        "Found %d packages from origin '%s' (out of %d total packages)",
+        "Loaded %d packages from origin '%s'",
         len(matching_packages),
         origin_name,
-        len(cache),
     )
 
     return matching_packages
 
 
 def get_packages_by_origins(cache: apt.Cache, origin_names: list[str]) -> list[apt.Package]:
-    """Get all packages from multiple origins in a single cache iteration.
+    """Get all packages from multiple origins.
 
-    This is more efficient than calling get_packages_by_origin() multiple times
-    when filtering by multiple origins, as it only iterates the cache once.
+    Uses the fast apt_pkg API to filter packages by origin, then loads only
+    the matching packages from apt.Cache.
 
     Args:
         cache: APT cache object
@@ -119,20 +197,26 @@ def get_packages_by_origins(cache: apt.Cache, origin_names: list[str]) -> list[a
     if not origin_names:
         return []
 
-    # Convert to set for O(1) lookup
-    origin_names_set = set(origin_names)
-    matching_packages = []
+    # Collect package names from all origins
+    all_matching_names = set()
+    for origin_name in origin_names:
+        matching_names = get_package_names_by_origin_fast(origin_name)
+        all_matching_names.update(matching_names)
 
-    for package in cache:
-        package_origin = _get_package_origin(package)
-        if package_origin and package_origin in origin_names_set:
-            matching_packages.append(package)
+    # Load the specific packages we need
+    matching_packages = []
+    for name in all_matching_names:
+        try:
+            pkg = cache[name]
+            matching_packages.append(pkg)
+        except KeyError:
+            logger.debug("Package %s not found in cache", name)
+            continue
 
     logger.info(
-        "Found %d packages from origins %s (out of %d total packages)",
+        "Loaded %d packages from origins %s",
         len(matching_packages),
         origin_names,
-        len(cache),
     )
 
     return matching_packages
