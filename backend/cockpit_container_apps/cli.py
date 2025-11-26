@@ -28,6 +28,7 @@ from typing import Any, NoReturn
 
 from cockpit_container_apps.commands import (
     filter_packages,
+    get_store_data,
     install,
     list_categories,
     list_packages_by_category,
@@ -46,6 +47,7 @@ Usage: cockpit-container-apps <command> [arguments]
 Commands:
   version                               Show version information
   list-stores                           List available container app stores
+  get-store-data STORE_ID               Get consolidated store data (config + packages + categories)
   list-categories [--store ID] [--tab TAB]
                                         List all categories (auto-discovered from tags)
   list-packages-by-category CATEGORY [--store ID]
@@ -59,6 +61,7 @@ Commands:
 Examples:
   cockpit-container-apps version
   cockpit-container-apps list-stores
+  cockpit-container-apps get-store-data marine
   cockpit-container-apps list-categories --store marine
   cockpit-container-apps list-packages-by-category navigation --store marine
   cockpit-container-apps filter-packages --store marine --tab installed --limit 50
@@ -98,6 +101,15 @@ def main() -> NoReturn:
 
         elif command == "list-stores":
             result = list_stores.execute()
+
+        elif command == "get-store-data":
+            if len(sys.argv) < 3:
+                raise APTBridgeError(
+                    "Get-store-data command requires a store ID argument",
+                    code="INVALID_ARGUMENTS",
+                )
+            store_id = sys.argv[2]
+            result = get_store_data.execute(store_id)
 
         elif command == "list-categories":
             # Parse optional --store parameter

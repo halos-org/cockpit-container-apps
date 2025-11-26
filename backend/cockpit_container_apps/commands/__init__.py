@@ -2,6 +2,7 @@
 
 from cockpit_container_apps.commands import (
     filter_packages,
+    get_store_data,
     install,
     list_categories,
     list_packages_by_category,
@@ -11,6 +12,7 @@ from cockpit_container_apps.commands import (
 
 __all__ = [
     "filter_packages",
+    "get_store_data",
     "install",
     "list_categories",
     "list_packages_by_category",
