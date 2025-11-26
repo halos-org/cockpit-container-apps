@@ -47,6 +47,12 @@ playwright-report/
 *.deb
 *.buildinfo
 *.changes
+.pybuild/
+debian/cockpit-container-apps/
+debian/.debhelper/
+debian/files
+debian/*.substvars
+debian/*.debhelper.log
 
 # IDE
 .vscode/

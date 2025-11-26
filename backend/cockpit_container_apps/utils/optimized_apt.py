@@ -15,6 +15,51 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _get_package_origin(package: apt.Package) -> str | None:
+    """Extract origin from package candidate.
+
+    Returns origin name, falling back to label if origin is empty.
+    Returns None if package has no candidate or origins.
+
+    Args:
+        package: APT package object
+
+    Returns:
+        Origin name string, or None if unavailable
+    """
+    # Skip packages without candidate version
+    if not hasattr(package, "candidate") or package.candidate is None:
+        return None
+
+    # Get package origins
+    try:
+        origins = package.candidate.origins
+        if not origins:
+            return None
+    except (AttributeError, TypeError):
+        logger.debug("Error getting origins for package %s", package.name)
+        return None
+
+    # Check first origin (typically the primary source)
+    origin_obj = origins[0]
+
+    try:
+        # Get origin and label
+        pkg_origin = getattr(origin_obj, "origin", "") or ""
+        pkg_label = getattr(origin_obj, "label", "") or ""
+
+        # Match on origin, or fall back to label if origin is empty
+        return pkg_origin if pkg_origin else pkg_label
+
+    except (AttributeError, TypeError) as e:
+        logger.debug(
+            "Error checking origin for package %s: %s",
+            package.name,
+            e,
+        )
+        return None
+
+
 def get_packages_by_origin(cache: apt.Cache, origin_name: str) -> list[apt.Package]:
     """Get all packages from a specific origin.
 
@@ -38,40 +83,9 @@ def get_packages_by_origin(cache: apt.Cache, origin_name: str) -> list[apt.Packa
     matching_packages = []
 
     for package in cache:
-        # Skip packages without candidate version
-        if not hasattr(package, "candidate") or package.candidate is None:
-            continue
-
-        # Get package origins
-        try:
-            origins = package.candidate.origins
-            if not origins:
-                continue
-        except (AttributeError, TypeError):
-            logger.debug("Error getting origins for package %s", package.name)
-            continue
-
-        # Check first origin (typically the primary source)
-        origin_obj = origins[0]
-
-        try:
-            # Get origin and label
-            pkg_origin = getattr(origin_obj, "origin", "") or ""
-            pkg_label = getattr(origin_obj, "label", "") or ""
-
-            # Match on origin, or fall back to label if origin is empty
-            package_origin = pkg_origin if pkg_origin else pkg_label
-
-            if package_origin == origin_name:
-                matching_packages.append(package)
-
-        except (AttributeError, TypeError) as e:
-            logger.debug(
-                "Error checking origin for package %s: %s",
-                package.name,
-                e,
-            )
-            continue
+        package_origin = _get_package_origin(package)
+        if package_origin and package_origin == origin_name:
+            matching_packages.append(package)
 
     logger.info(
         "Found %d packages from origin '%s' (out of %d total packages)",
@@ -110,40 +124,9 @@ def get_packages_by_origins(cache: apt.Cache, origin_names: list[str]) -> list[a
     matching_packages = []
 
     for package in cache:
-        # Skip packages without candidate version
-        if not hasattr(package, "candidate") or package.candidate is None:
-            continue
-
-        # Get package origins
-        try:
-            origins = package.candidate.origins
-            if not origins:
-                continue
-        except (AttributeError, TypeError):
-            logger.debug("Error getting origins for package %s", package.name)
-            continue
-
-        # Check first origin (typically the primary source)
-        origin_obj = origins[0]
-
-        try:
-            # Get origin and label
-            pkg_origin = getattr(origin_obj, "origin", "") or ""
-            pkg_label = getattr(origin_obj, "label", "") or ""
-
-            # Match on origin, or fall back to label if origin is empty
-            package_origin = pkg_origin if pkg_origin else pkg_label
-
-            if package_origin in origin_names_set:
-                matching_packages.append(package)
-
-        except (AttributeError, TypeError) as e:
-            logger.debug(
-                "Error checking origin for package %s: %s",
-                package.name,
-                e,
-            )
-            continue
+        package_origin = _get_package_origin(package)
+        if package_origin and package_origin in origin_names_set:
+            matching_packages.append(package)
 
     logger.info(
         "Found %d packages from origins %s (out of %d total packages)",

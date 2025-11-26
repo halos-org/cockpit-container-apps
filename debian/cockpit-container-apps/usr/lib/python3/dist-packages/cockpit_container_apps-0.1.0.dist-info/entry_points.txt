@@ -1,2 +1,0 @@
-[console_scripts]
-cockpit-container-apps = cockpit_container_apps.cli:main
