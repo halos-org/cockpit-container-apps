@@ -252,6 +252,7 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
                                 packages: filtered,
                                 totalPackageCount: filtered.length,
                                 limitedResults: false,
+                                loading: false, // Categories loaded
                                 packagesLoading: false,
                             }));
                         })
@@ -273,7 +274,12 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
                     return { ...prev, packages: [], packagesLoading: false };
                 }
 
-                return { ...prev, packagesLoading: true, packagesError: null };
+                return {
+                    ...prev,
+                    loading: true, // Start loading categories
+                    packagesLoading: true,
+                    packagesError: null,
+                };
             });
         },
         [filterPackagesClientSide]
