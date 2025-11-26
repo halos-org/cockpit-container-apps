@@ -67,13 +67,14 @@ def execute(category_id: str, store_id: str | None = None) -> list[dict[str, Any
         packages = []
 
         # Optimization: Use pre-filtered packages if store is specified
-        if store_config:
-            packages_to_check = get_pre_filtered_packages(cache, store_config)
-        else:
-            packages_to_check = list(cache)
+        packages_to_check = (
+            get_pre_filtered_packages(cache, store_config)
+            if store_config
+            else list(cache)
+        )
 
         for pkg in packages_to_check:
-            # Only check store filter if we didn't pre-filter
+            # Apply full store filter (pre-filtering is just an optimization)
             if store_config and not matches_store_filter(pkg, store_config):
                 continue
 

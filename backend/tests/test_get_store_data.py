@@ -10,7 +10,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from cockpit_container_apps.commands import get_store_data
-from cockpit_container_apps.vendor.cockpit_apt_utils.errors import APTBridgeError
+from cockpit_container_apps.vendor.cockpit_apt_utils.errors import (
+    APTBridgeError,
+    CacheError,
+)
 from tests.conftest import MockCache, MockPackage
 
 
@@ -219,3 +222,31 @@ class TestGetStoreData:
         # Categories should be sorted alphabetically by label
         labels = [c["label"] for c in result["categories"]]
         assert labels == sorted(labels)
+
+    @patch("cockpit_container_apps.commands.get_store_data.load_stores")
+    def test_apt_cache_error(self, mock_load_stores):
+        """Test error handling when APT cache fails to open."""
+        from cockpit_container_apps.utils.store_config import StoreConfig, StoreFilter
+
+        marine_store = StoreConfig(
+            id="marine",
+            name="Marine Apps",
+            description="Marine apps",
+            filters=StoreFilter(
+                include_origins=["Hat Labs"],
+                include_sections=[],
+                include_tags=["role::container-app"],
+                include_packages=[],
+            ),
+        )
+        mock_load_stores.return_value = [marine_store]
+
+        # Mock APT cache to raise an exception on initialization
+        mock_apt = MagicMock()
+        mock_apt.Cache = MagicMock(side_effect=Exception("Failed to open cache"))
+
+        with patch.dict("sys.modules", {"apt": mock_apt}):
+            with pytest.raises(CacheError) as exc_info:
+                get_store_data.execute("marine")
+
+            assert "Failed to open APT cache" in str(exc_info.value.message)

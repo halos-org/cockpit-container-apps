@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from cockpit_container_apps.utils.optimized_apt import get_packages_by_origin
+from cockpit_container_apps.utils.optimized_apt import get_packages_by_origins
 from cockpit_container_apps.vendor.cockpit_apt_utils.debtag_parser import parse_package_tags
 from cockpit_container_apps.vendor.cockpit_apt_utils.repository_parser import get_package_repository
 
@@ -177,11 +177,8 @@ def get_pre_filtered_packages(cache: apt.Cache, store: StoreConfig) -> list[apt.
             filters.include_origins,
         )
 
-        # Collect packages from all specified origins
-        pre_filtered = []
-        for origin_name in filters.include_origins:
-            origin_packages = get_packages_by_origin(cache, origin_name)
-            pre_filtered.extend(origin_packages)
+        # Get packages from all specified origins in a single iteration
+        pre_filtered = get_packages_by_origins(cache, filters.include_origins)
 
         logger.info(
             "Pre-filtering reduced package set from %d to %d (%.1fx speedup)",

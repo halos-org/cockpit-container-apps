@@ -93,7 +93,7 @@ def execute(
             if not pkg.candidate:
                 continue
 
-            # Only check store filter if we didn't pre-filter
+            # Apply full store filter (pre-filtering is just an optimization)
             if store and not matches_store_filter(pkg, store):
                 continue
 
