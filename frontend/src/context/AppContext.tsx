@@ -297,11 +297,40 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
         saveActiveCategory(null);
     }, []);
 
-    // Set active category
-    const setActiveCategory = useCallback((categoryId: string | null) => {
-        setState((prev) => ({ ...prev, activeCategory: categoryId }));
-        saveActiveCategory(categoryId);
-    }, []);
+    // Set active category with instant client-side filtering
+    const setActiveCategory = useCallback(
+        (categoryId: string | null) => {
+            setState((prev) => {
+                // If we have cached packages, filter immediately to avoid flash of unfiltered apps
+                if (prev.allPackages.length > 0) {
+                    const filtered = filterPackagesClientSide(
+                        prev.allPackages,
+                        categoryId,
+                        prev.installFilter,
+                        prev.searchQuery
+                    );
+
+                    saveActiveCategory(categoryId);
+                    return {
+                        ...prev,
+                        activeCategory: categoryId,
+                        packages: filtered,
+                        totalPackageCount: filtered.length,
+                    };
+                }
+
+                // No cache - will be loaded by useEffect, show spinner while loading
+                saveActiveCategory(categoryId);
+                return {
+                    ...prev,
+                    activeCategory: categoryId,
+                    packages: [], // Clear packages to avoid flash
+                    packagesLoading: true, // Show spinner
+                };
+            });
+        },
+        [filterPackagesClientSide]
+    );
 
     // Set active tab
     const setActiveTab = useCallback((tab: 'installed' | 'available') => {
