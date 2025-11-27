@@ -28,12 +28,15 @@ from typing import Any, NoReturn
 
 from cockpit_container_apps.commands import (
     filter_packages,
+    get_config,
+    get_config_schema,
     get_store_data,
     install,
     list_categories,
     list_packages_by_category,
     list_stores,
     remove,
+    set_config,
 )
 from cockpit_container_apps.utils.formatters import to_json
 from cockpit_container_apps.vendor.cockpit_apt_utils.errors import APTBridgeError, format_error
@@ -57,6 +60,9 @@ Commands:
                                                  [--tab TAB] [--search QUERY] [--limit N]
   install PACKAGE                       Install a package (with progress)
   remove PACKAGE                        Remove a package (with progress)
+  get-config-schema PACKAGE             Get configuration schema for a package
+  get-config PACKAGE                    Get current configuration values for a package
+  set-config PACKAGE JSON               Set configuration values for a package
 
 Examples:
   cockpit-container-apps version
@@ -236,6 +242,34 @@ def main() -> NoReturn:
                 )
             package_name = sys.argv[2]
             result = remove.execute(package_name)
+
+        elif command == "get-config-schema":
+            if len(sys.argv) < 3:
+                raise APTBridgeError(
+                    "Get-config-schema command requires a package name argument",
+                    code="INVALID_ARGUMENTS",
+                )
+            package_name = sys.argv[2]
+            result = get_config_schema.execute(package_name)
+
+        elif command == "get-config":
+            if len(sys.argv) < 3:
+                raise APTBridgeError(
+                    "Get-config command requires a package name argument",
+                    code="INVALID_ARGUMENTS",
+                )
+            package_name = sys.argv[2]
+            result = get_config.execute(package_name)
+
+        elif command == "set-config":
+            if len(sys.argv) < 4:
+                raise APTBridgeError(
+                    "Set-config command requires package name and config JSON arguments",
+                    code="INVALID_ARGUMENTS",
+                )
+            package_name = sys.argv[2]
+            config_json = sys.argv[3]
+            result = set_config.execute(package_name, config_json)
 
         elif command in ("--help", "-h", "help"):
             print_usage()
