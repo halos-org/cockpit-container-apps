@@ -304,7 +304,7 @@ describe('AppDetails - Configuration Integration', () => {
         const installedPkg = { ...mockPackage, installed: true };
         vi.spyOn(api, 'getConfigSchema').mockResolvedValue(mockConfigSchema);
         vi.spyOn(api, 'getConfig').mockResolvedValue(mockConfig);
-        const setConfigSpy = vi.spyOn(api, 'setConfig').mockResolvedValue(undefined);
+        const setConfigSpy = vi.spyOn(api, 'setConfig').mockResolvedValue({});
 
         render(
             <AppDetails
@@ -420,7 +420,7 @@ describe('AppDetails - Configuration Integration', () => {
         const installedPkg = { ...mockPackage, installed: true };
         vi.spyOn(api, 'getConfigSchema').mockResolvedValue(mockConfigSchema);
         const getConfigSpy = vi.spyOn(api, 'getConfig').mockResolvedValue(mockConfig);
-        vi.spyOn(api, 'setConfig').mockResolvedValue(undefined);
+        vi.spyOn(api, 'setConfig').mockResolvedValue({});
 
         render(
             <AppDetails

@@ -430,8 +430,12 @@ export async function getConfig(packageName: string): Promise<ConfigValues> {
 
 /**
  * Set configuration values for a package
+ * Returns warning message if service restart failed (config still saved)
  */
-export async function setConfig(packageName: string, config: ConfigValues): Promise<void> {
+export async function setConfig(
+    packageName: string,
+    config: ConfigValues
+): Promise<{ warning?: string }> {
     const response = await executeCommand<SetConfigResponse>('set-config', [
         packageName,
         JSON.stringify(config),
@@ -443,6 +447,7 @@ export async function setConfig(packageName: string, config: ConfigValues): Prom
             response.details
         );
     }
+    return { warning: response.warning };
 }
 
 /**

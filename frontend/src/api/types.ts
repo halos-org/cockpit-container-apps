@@ -236,4 +236,5 @@ export interface SetConfigResponse {
     success: boolean;
     error?: string;
     details?: string;
+    warning?: string;
 }

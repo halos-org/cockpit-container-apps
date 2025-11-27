@@ -105,10 +105,14 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
         setIsSavingConfig(true);
         setSaveError(null);
         try {
-            await setConfig(pkg.name, newConfig);
+            const result = await setConfig(pkg.name, newConfig);
             // Reload config after save
             const updatedConfig = await getConfig(pkg.name);
             setConfigState(updatedConfig);
+            // Show warning if service restart failed
+            if (result.warning) {
+                setSaveError(result.warning);
+            }
         } catch (error) {
             setSaveError(formatErrorMessage(error));
         } finally {
