@@ -216,10 +216,8 @@ def validate_config_value(field: dict[str, Any], value: str) -> bool:
         # Check min/max constraints
         if "min" in field and int_value < field["min"]:
             return False
-        if "max" in field and int_value > field["max"]:
-            return False
-
-        return True
+        # Return True if max constraint is satisfied (or no max constraint)
+        return not ("max" in field and int_value > field["max"])
 
     elif field_type == "boolean":
         # Empty optional booleans are invalid
