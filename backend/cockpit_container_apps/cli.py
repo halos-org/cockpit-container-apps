@@ -23,6 +23,7 @@ Example Usage:
     $ cockpit-container-apps list-stores
 """
 
+import json
 import sys
 from typing import Any, NoReturn
 
@@ -268,8 +269,23 @@ def main() -> NoReturn:
                     code="INVALID_ARGUMENTS",
                 )
             package_name = sys.argv[2]
-            config_json = sys.argv[3]
-            result = set_config.execute(package_name, config_json)
+            config_json_str = sys.argv[3]
+
+            # Parse JSON string to dictionary
+            try:
+                config_dict = json.loads(config_json_str)
+                if not isinstance(config_dict, dict):
+                    raise APTBridgeError(
+                        "Config must be a JSON object",
+                        code="INVALID_ARGUMENTS",
+                    )
+            except json.JSONDecodeError as e:
+                raise APTBridgeError(
+                    f"Invalid JSON: {e}",
+                    code="INVALID_JSON",
+                ) from None
+
+            result = set_config.execute(package_name, config_dict)
 
         elif command in ("--help", "-h", "help"):
             print_usage()
