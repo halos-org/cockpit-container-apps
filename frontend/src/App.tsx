@@ -61,7 +61,7 @@ function AppContent(): React.ReactElement {
                 );
             }
         }
-    }, [state.allPackages, router.route, router.selectedPackage]);
+    }, [state.allPackages, router]);
 
     // Navigate to a category's apps
     const handleCategorySelect = useCallback(

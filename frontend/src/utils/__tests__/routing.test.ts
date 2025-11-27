@@ -148,11 +148,13 @@ describe('Routing Utilities', () => {
                 section: 'navigation',
                 installed: false,
                 upgradable: false,
+                categories: [],
             };
 
             const router: RouterState = {
                 route: 'app',
                 selectedPackage: mockPackage,
+                appName: 'signalk-server',
             };
 
             const result = buildLocationFromRouter(router);
@@ -166,7 +168,7 @@ describe('Routing Utilities', () => {
         it('should handle category route without selectedCategory', () => {
             const router: RouterState = {
                 route: 'category',
-                // selectedCategory is undefined
+                selectedCategory: '',
             };
 
             const result = buildLocationFromRouter(router);
@@ -181,7 +183,8 @@ describe('Routing Utilities', () => {
         it('should handle app route without selectedPackage', () => {
             const router: RouterState = {
                 route: 'app',
-                // selectedPackage is undefined
+                selectedPackage: null,
+                appName: '',
             };
 
             const result = buildLocationFromRouter(router);
@@ -233,11 +236,13 @@ describe('Routing Utilities', () => {
                 section: 'navigation',
                 installed: true,
                 upgradable: false,
+                categories: [],
             };
 
             const router: RouterState = {
                 route: 'app',
                 selectedPackage: mockPackage,
+                appName: 'signalk-server',
             };
 
             const result = buildLocationFromRouter(router, 'marine', 'installed');
@@ -404,18 +409,22 @@ describe('Routing Utilities', () => {
                 section: 'navigation',
                 installed: false,
                 upgradable: false,
+                categories: [],
             };
 
             const originalRouter: RouterState = {
                 route: 'app',
                 selectedPackage: mockPackage,
+                appName: 'signalk-server',
             };
 
             const location = buildLocationFromRouter(originalRouter);
             const parsedRouter = parseLocationToRouter(location);
 
             expect(parsedRouter.route).toBe('app');
-            expect(parsedRouter.appName).toBe('signalk-server');
+            if (parsedRouter.route === 'app') {
+                expect(parsedRouter.appName).toBe('signalk-server');
+            }
         });
     });
 });

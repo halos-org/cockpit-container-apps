@@ -5,7 +5,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ContainerAppsError,
-    filterPackages,
     getStoreData,
     listCategories,
     listStores,

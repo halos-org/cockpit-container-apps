@@ -91,7 +91,9 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
             setConfigSchema(schema);
             setConfigState(configValues);
         } catch (error) {
-            // Silently ignore if schema doesn't exist - not all apps have configuration
+            // Not all apps have configuration schema
+            // Display error for visibility but treat as non-critical
+            // (configuration section won't render if schema is null)
             setConfigError(formatErrorMessage(error));
             setConfigSchema(null);
         } finally {

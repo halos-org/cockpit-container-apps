@@ -8,6 +8,7 @@ import {
     FormHelperText,
     HelperText,
     HelperTextItem,
+    MenuToggle,
     Select,
     SelectList,
     SelectOption,
@@ -96,6 +97,8 @@ export function IntegerField({ field, value, onChange, error }: FieldProps) {
  * Boolean field - toggle switch
  */
 export function BooleanField({ field, value, onChange, error }: FieldProps) {
+    // Accept multiple boolean representations for flexibility when reading values
+    // (e.g., from backend or defaults), but always output 'true'/'false' for consistency
     const isChecked = value === 'true' || value === '1' || value === 'yes';
 
     return (
@@ -153,14 +156,14 @@ export function EnumField({ field, value, onChange, error }: FieldProps) {
                 }}
                 onOpenChange={(open) => setIsOpen(open)}
                 toggle={(toggleRef) => (
-                    <button
+                    <MenuToggle
                         ref={toggleRef}
                         onClick={() => setIsOpen(!isOpen)}
-                        className="pf-v6-c-menu-toggle"
+                        isExpanded={isOpen}
                         style={{ width: '100%' }}
                     >
                         {selectedLabel}
-                    </button>
+                    </MenuToggle>
                 )}
             >
                 <SelectList>

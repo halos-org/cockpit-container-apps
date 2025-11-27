@@ -79,10 +79,12 @@ export function ConfigForm({
         // Type-specific validation
         if (field.type === 'integer') {
             if (value) {
-                const num = parseInt(value, 10);
-                if (isNaN(num)) {
-                    return 'Must be a valid number';
+                // Use strict regex validation instead of parseInt to prevent partial parsing
+                // e.g., "123abc" should fail, not parse as 123
+                if (!/^-?\d+$/.test(value)) {
+                    return 'Must be a valid integer';
                 }
+                const num = parseInt(value, 10);
                 if (field.min !== undefined && num < field.min) {
                     return `Value must be at least ${field.min}`;
                 }
@@ -93,7 +95,13 @@ export function ConfigForm({
         }
 
         if (field.type === 'path') {
-            // Check for directory traversal
+            // Basic client-side check for directory traversal
+            // NOTE: This only catches common cases (../) for UX feedback.
+            // Backend MUST perform comprehensive path validation including:
+            // - Variants like ..\\, ....//
+            // - URL encoding
+            // - Symlink resolution
+            // - Path canonicalization
             if (value && value.includes('../')) {
                 return 'Invalid path: directory traversal detected';
             }
@@ -159,6 +167,24 @@ export function ConfigForm({
     }
 
     /**
+     * Handle cancel button click - reset form to original config
+     */
+    function handleCancel() {
+        // Reset form values to original config
+        const values: ConfigValues = { ...config };
+        schema.groups.forEach((group) => {
+            group.fields.forEach((field) => {
+                if (values[field.id] === undefined && field.default !== undefined) {
+                    values[field.id] = field.default;
+                }
+            });
+        });
+        setFormValues(values);
+        setValidationErrors({});
+        onCancel();
+    }
+
+    /**
      * Render appropriate field component based on type
      */
     function renderField(field: ConfigField) {
@@ -210,7 +236,7 @@ export function ConfigForm({
                 <Button variant="primary" onClick={handleSave} isDisabled={isSaving}>
                     {isSaving ? 'Saving...' : 'Save'}
                 </Button>
-                <Button variant="link" onClick={onCancel}>
+                <Button variant="link" onClick={handleCancel}>
                     Cancel
                 </Button>
             </ActionGroup>

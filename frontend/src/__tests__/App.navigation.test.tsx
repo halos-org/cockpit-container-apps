@@ -261,8 +261,6 @@ describe('App Navigation Integration', () => {
 
     describe('Browser back button', () => {
         it('should navigate back from app details to category list', async () => {
-            const user = userEvent.setup();
-
             // Start with app details URL
             mockCockpitLocation.path = ['app', 'signalk-server'];
             mockCockpitLocation.options = { store: 'marine' };
@@ -443,7 +441,12 @@ describe('App Navigation Integration', () => {
                     description: null,
                     icon: null,
                     banner: null,
-                    filters: { include_tags: ['role::container-app'] },
+                    filters: {
+                        include_origins: [],
+                        include_sections: [],
+                        include_tags: ['role::container-app'],
+                        include_packages: [],
+                    },
                     category_metadata: null,
                 },
                 {
@@ -452,7 +455,12 @@ describe('App Navigation Integration', () => {
                     description: null,
                     icon: null,
                     banner: null,
-                    filters: { include_tags: ['role::container-app'] },
+                    filters: {
+                        include_origins: [],
+                        include_sections: [],
+                        include_tags: ['role::container-app'],
+                        include_packages: [],
+                    },
                     category_metadata: null,
                 },
             ]);
@@ -488,7 +496,12 @@ describe('App Navigation Integration', () => {
                     description: null,
                     icon: null,
                     banner: null,
-                    filters: { include_tags: ['role::container-app'] },
+                    filters: {
+                        include_origins: [],
+                        include_sections: [],
+                        include_tags: ['role::container-app'],
+                        include_packages: [],
+                    },
                     category_metadata: null,
                 },
                 {
@@ -497,7 +510,12 @@ describe('App Navigation Integration', () => {
                     description: null,
                     icon: null,
                     banner: null,
-                    filters: { include_tags: ['role::container-app'] },
+                    filters: {
+                        include_origins: [],
+                        include_sections: [],
+                        include_tags: ['role::container-app'],
+                        include_packages: [],
+                    },
                     category_metadata: null,
                 },
             ]);

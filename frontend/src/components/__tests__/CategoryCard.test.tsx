@@ -14,6 +14,9 @@ const mockCategory: Category = {
     icon: null,
     description: 'Navigation and GPS applications',
     count: 5,
+    count_all: 5,
+    count_available: 3,
+    count_installed: 2,
 };
 
 describe('CategoryCard', () => {

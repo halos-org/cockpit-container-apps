@@ -16,6 +16,7 @@ const mockInstalledPackages: Package[] = [
         section: 'navigation',
         installed: true,
         upgradable: false,
+        categories: ['navigation'],
     },
     {
         name: 'grafana',
@@ -24,6 +25,7 @@ const mockInstalledPackages: Package[] = [
         section: 'monitoring',
         installed: true,
         upgradable: true,
+        categories: ['monitoring'],
     },
 ];
 
