@@ -1,8 +1,9 @@
 """Tests for set_config command."""
 
+import subprocess
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -533,3 +534,138 @@ groups:
         config_path.unlink()
 
         assert result["success"] is True
+
+    def test_set_config_restart_service_success(self):
+        """Test that service restart succeeds after config save."""
+        schema_content = """version: "1.0"
+groups:
+  - id: general
+    label: General Settings
+    fields:
+      - id: PORT
+        type: integer
+        label: Port
+"""
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yml") as f:
+            f.write(schema_content)
+            f.flush()
+            schema_path = Path(f.name)
+
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".env") as f:
+            config_path = Path(f.name)
+
+        with patch(
+            "cockpit_container_apps.commands.set_config.get_config_schema_path",
+            return_value=schema_path,
+        ), patch(
+            "cockpit_container_apps.commands.set_config.get_config_file_path",
+            return_value=config_path,
+        ), patch("subprocess.run") as mock_run:
+            # Mock successful restart
+            mock_run.return_value = Mock(returncode=0, stderr="")
+
+            result = set_config.execute(
+                package="signalk",
+                config={"PORT": "8080"},
+            )
+
+        schema_path.unlink()
+        config_path.unlink()
+
+        # Verify success without warning
+        assert result["success"] is True
+        assert "warning" not in result
+
+        # Verify systemctl was called
+        mock_run.assert_called_once_with(
+            ["systemctl", "restart", "signalk.service"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+    def test_set_config_restart_failure_returns_warning(self):
+        """Test that service restart failure returns warning."""
+        schema_content = """version: "1.0"
+groups:
+  - id: general
+    label: General Settings
+    fields:
+      - id: PORT
+        type: integer
+        label: Port
+"""
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yml") as f:
+            f.write(schema_content)
+            f.flush()
+            schema_path = Path(f.name)
+
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".env") as f:
+            config_path = Path(f.name)
+
+        with patch(
+            "cockpit_container_apps.commands.set_config.get_config_schema_path",
+            return_value=schema_path,
+        ), patch(
+            "cockpit_container_apps.commands.set_config.get_config_file_path",
+            return_value=config_path,
+        ), patch("subprocess.run") as mock_run:
+            # Mock failed restart
+            mock_run.return_value = Mock(returncode=1, stderr="Service not found")
+
+            result = set_config.execute(
+                package="signalk",
+                config={"PORT": "8080"},
+            )
+
+        schema_path.unlink()
+        config_path.unlink()
+
+        # Config should still be saved
+        assert result["success"] is True
+        # But with warning
+        assert "warning" in result
+        assert "Service not found" in result["warning"]
+
+    def test_set_config_restart_timeout_returns_warning(self):
+        """Test that service restart timeout returns warning."""
+        schema_content = """version: "1.0"
+groups:
+  - id: general
+    label: General Settings
+    fields:
+      - id: PORT
+        type: integer
+        label: Port
+"""
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yml") as f:
+            f.write(schema_content)
+            f.flush()
+            schema_path = Path(f.name)
+
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".env") as f:
+            config_path = Path(f.name)
+
+        with patch(
+            "cockpit_container_apps.commands.set_config.get_config_schema_path",
+            return_value=schema_path,
+        ), patch(
+            "cockpit_container_apps.commands.set_config.get_config_file_path",
+            return_value=config_path,
+        ), patch("subprocess.run") as mock_run:
+            # Mock timeout
+            mock_run.side_effect = subprocess.TimeoutExpired("systemctl", 30)
+
+            result = set_config.execute(
+                package="signalk",
+                config={"PORT": "8080"},
+            )
+
+        schema_path.unlink()
+        config_path.unlink()
+
+        # Config should still be saved
+        assert result["success"] is True
+        # But with warning
+        assert "warning" in result
+        assert "timed out" in result["warning"]

@@ -148,6 +148,9 @@ def execute(package: str, config: dict[str, str]) -> dict[str, Any]:
             }
 
         # Restart the service to apply configuration changes
+        # Security: Cockpit handles privilege escalation via polkit integration.
+        # Frontend calls this with superuser: 'try', which prompts for authentication
+        # if needed. Package name is validated by _validate_package_name() above.
         try:
             service_name = f"{package}.service"
             result = subprocess.run(

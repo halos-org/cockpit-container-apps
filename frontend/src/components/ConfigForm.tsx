@@ -29,6 +29,7 @@ export interface ConfigFormProps {
     onCancel: () => void;
     isSaving?: boolean;
     saveError?: string;
+    saveWarning?: string;
 }
 
 export function ConfigForm({
@@ -38,6 +39,7 @@ export function ConfigForm({
     onCancel,
     isSaving = false,
     saveError,
+    saveWarning,
 }: ConfigFormProps) {
     // Initialize form values with config + defaults from schema
     const [formValues, setFormValues] = useState<ConfigValues>(() => {
@@ -229,6 +231,12 @@ export function ConfigForm({
             {saveError && (
                 <Alert variant="danger" title="Save Failed" isInline>
                     {saveError}
+                </Alert>
+            )}
+
+            {saveWarning && (
+                <Alert variant="warning" title="Configuration Saved" isInline>
+                    {saveWarning}
                 </Alert>
             )}
 
