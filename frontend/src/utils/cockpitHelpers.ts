@@ -20,9 +20,11 @@ export function isCockpitAvailable(): boolean {
  * @param path - Path segments (e.g., ['app', 'signalk-server'])
  * @param options - Query parameters (e.g., { store: 'marine', filter: 'installed' })
  */
-export function navigateTo(path: string[], options?: Record<string, string>): void {
+export function navigateTo(path: string[], options?: Record<string, string | string[]>): void {
     if (isCockpitAvailable() && cockpit.location) {
-        cockpit.location.go(path, options);
+        // Cast to the narrower type expected by cockpit.location.go
+        // This is safe because Cockpit actually supports string arrays
+        cockpit.location.go(path, options as Record<string, string> | undefined);
     }
 }
 
