@@ -15,6 +15,9 @@ const mockCategories: Category[] = [
         icon: null,
         description: 'Navigation and GPS applications',
         count: 5,
+        count_all: 5,
+        count_available: 3,
+        count_installed: 2,
     },
     {
         id: 'monitoring',
@@ -22,6 +25,9 @@ const mockCategories: Category[] = [
         icon: null,
         description: 'System monitoring tools',
         count: 3,
+        count_all: 3,
+        count_available: 2,
+        count_installed: 1,
     },
     {
         id: 'communication',
@@ -29,6 +35,9 @@ const mockCategories: Category[] = [
         icon: null,
         description: 'Communication applications',
         count: 2,
+        count_all: 2,
+        count_available: 1,
+        count_installed: 1,
     },
 ];
 

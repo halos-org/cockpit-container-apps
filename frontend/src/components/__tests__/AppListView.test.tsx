@@ -16,6 +16,7 @@ const mockPackages: Package[] = [
         section: 'navigation',
         installed: false,
         upgradable: false,
+        categories: ['navigation'],
     },
     {
         name: 'influxdb',
@@ -24,6 +25,7 @@ const mockPackages: Package[] = [
         section: 'database',
         installed: true,
         upgradable: false,
+        categories: ['database'],
     },
     {
         name: 'grafana',
@@ -32,6 +34,7 @@ const mockPackages: Package[] = [
         section: 'monitoring',
         installed: true,
         upgradable: true,
+        categories: ['monitoring'],
     },
 ];
 

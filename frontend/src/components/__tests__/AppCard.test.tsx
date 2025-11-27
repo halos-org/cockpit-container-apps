@@ -15,6 +15,7 @@ const mockPackage: Package = {
     section: 'navigation',
     installed: false,
     upgradable: false,
+    categories: ['navigation'],
 };
 
 describe('AppCard', () => {
