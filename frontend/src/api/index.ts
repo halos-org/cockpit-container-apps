@@ -142,7 +142,8 @@ export async function listCategories(
 ): Promise<Category[]> {
     const args: string[] = [];
     if (storeId) {
-        args.push('--store', storeId);
+        // Use --key=value format to prevent argument injection
+        args.push(`--store=${storeId}`);
     }
     return executeCommand<Category[]>('list-categories', args);
 }
@@ -174,7 +175,8 @@ export async function listPackagesByCategory(
 ): Promise<Package[]> {
     const args = [categoryId];
     if (storeId) {
-        args.push('--store', storeId);
+        // Use --key=value format to prevent argument injection
+        args.push(`--store=${storeId}`);
     }
     return executeCommand<Package[]>('list-packages-by-category', args);
 }
@@ -183,25 +185,28 @@ export async function listPackagesByCategory(
  * Filter packages with cascade filtering
  */
 export async function filterPackages(params: FilterParams = {}): Promise<FilterPackagesResponse> {
+    // Use --key=value format for all parameters to prevent argument injection.
+    // This prevents dash-prefixed values (e.g., "-test") from being interpreted
+    // as separate command-line flags by the backend's argument parser.
     const args: string[] = [];
 
     if (params.store_id) {
-        args.push('--store', params.store_id);
+        args.push(`--store=${params.store_id}`);
     }
     if (params.repository_id) {
-        args.push('--repo', params.repository_id);
+        args.push(`--repo=${params.repository_id}`);
     }
     if (params.category_id) {
-        args.push('--category', params.category_id);
+        args.push(`--category=${params.category_id}`);
     }
     if (params.tab) {
-        args.push('--tab', params.tab);
+        args.push(`--tab=${params.tab}`);
     }
     if (params.search_query) {
-        args.push('--search', params.search_query);
+        args.push(`--search=${params.search_query}`);
     }
     if (params.limit !== undefined) {
-        args.push('--limit', params.limit.toString());
+        args.push(`--limit=${params.limit.toString()}`);
     }
 
     return executeCommand<FilterPackagesResponse>('filter-packages', args);

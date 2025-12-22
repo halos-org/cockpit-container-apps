@@ -138,3 +138,64 @@ class TestCLIOutputFormat:
         assert result.returncode == 0
         # Output should be valid JSON
         json.loads(result.stdout)
+
+
+class TestCLIArgumentInjection:
+    """Tests for argument injection prevention.
+
+    These tests verify that dash-prefixed values are handled correctly
+    by argparse and not interpreted as command-line flags.
+    """
+
+    def test_dash_prefixed_search_combined_format(self):
+        """Test that --search=-test is parsed correctly.
+
+        The frontend uses --search=VALUE format to prevent argparse
+        from misinterpreting dash-prefixed values as flags.
+        """
+        parser = cli.create_parser()
+        args = parser.parse_args(["filter-packages", "--search=-test"])
+
+        # Should parse correctly - argparse interprets --search=-test
+        # as search value "-test"
+        assert args.search == "-test"
+        assert args.command == "filter-packages"
+
+    def test_dash_prefixed_search_separate_format_fails(self):
+        """Test that --search -test format FAILS with argparse.
+
+        This documents why the frontend must use --search=VALUE format.
+        When --search and -test are separate arguments, argparse interprets
+        -test as an unknown flag, not as the value for --search.
+        """
+        parser = cli.create_parser()
+
+        # This SHOULD fail - argparse sees "-test" as a flag
+        with pytest.raises(SystemExit):
+            parser.parse_args(["filter-packages", "--search", "-test"])
+
+    def test_double_dash_search_value(self):
+        """Test searching for a value that looks like a flag."""
+        parser = cli.create_parser()
+        args = parser.parse_args(["filter-packages", "--search=--limit"])
+
+        # Should treat "--limit" as the search term, not as a flag
+        assert args.search == "--limit"
+        # limit should be default, not affected
+        assert args.limit == 1000
+
+    def test_all_filter_params_with_dashes(self):
+        """Test that all filter parameters handle dash-prefixed values."""
+        parser = cli.create_parser()
+        args = parser.parse_args([
+            "filter-packages",
+            "--store=-marine",
+            "--repo=-test:repo",
+            "--category=-nav",
+            "--search=-query",
+        ])
+
+        assert args.store == "-marine"
+        assert args.repo == "-test:repo"
+        assert args.category == "-nav"
+        assert args.search == "-query"

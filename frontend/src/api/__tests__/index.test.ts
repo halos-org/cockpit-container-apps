@@ -157,8 +157,9 @@ describe('API Wrapper', () => {
 
             const result = await listCategories('marine');
             expect(result).toEqual(mockCategories);
+            // Uses --key=value format to prevent argument injection with dash-prefixed values
             expect(mockSpawn).toHaveBeenCalledWith(
-                ['cockpit-container-apps', 'list-categories', '--store', 'marine'],
+                ['cockpit-container-apps', 'list-categories', '--store=marine'],
                 expect.any(Object)
             );
         });
@@ -229,13 +230,13 @@ describe('API Wrapper', () => {
 
             const result = await listPackagesByCategory('navigation', 'marine');
             expect(result).toEqual(mockPackages);
+            // Uses --key=value format to prevent argument injection with dash-prefixed values
             expect(mockSpawn).toHaveBeenCalledWith(
                 [
                     'cockpit-container-apps',
                     'list-packages-by-category',
                     'navigation',
-                    '--store',
-                    'marine',
+                    '--store=marine',
                 ],
                 expect.any(Object)
             );
@@ -275,20 +276,16 @@ describe('API Wrapper', () => {
                 limit: 50,
             });
 
+            // Uses --key=value format to prevent argument injection with dash-prefixed values
             expect(mockSpawn).toHaveBeenCalledWith(
                 [
                     'cockpit-container-apps',
                     'filter-packages',
-                    '--store',
-                    'marine',
-                    '--repo',
-                    'marine:stable',
-                    '--tab',
-                    'installed',
-                    '--search',
-                    'signal',
-                    '--limit',
-                    '50',
+                    '--store=marine',
+                    '--repo=marine:stable',
+                    '--tab=installed',
+                    '--search=signal',
+                    '--limit=50',
                 ],
                 expect.any(Object)
             );
