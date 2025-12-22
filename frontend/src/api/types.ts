@@ -238,3 +238,21 @@ export interface SetConfigResponse {
     details?: string;
     warning?: string;
 }
+
+/**
+ * Store package information (for store editor)
+ */
+export interface StorePackage {
+    package_name: string;
+    store_id: string;
+    description: string;
+    installed: boolean;
+    version: string | null;
+}
+
+/**
+ * List store packages response
+ */
+export interface ListStorePackagesResponse {
+    store_packages: StorePackage[];
+}

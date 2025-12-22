@@ -16,13 +16,14 @@ import {
     TabTitleText,
     Tooltip,
 } from '@patternfly/react-core';
-import { SyncIcon } from '@patternfly/react-icons';
+import { PencilAltIcon, SyncIcon } from '@patternfly/react-icons';
 import React, { useCallback, useEffect, useState } from 'react';
 import type { Package } from './api/types';
 import { AppDetails } from './components/AppDetails';
 import { AppListView } from './components/AppListView';
 import { CategoriesView } from './components/CategoriesView';
 import { FilterToggleGroup } from './components/FilterToggleGroup';
+import { StoreEditorModal } from './components/StoreEditorModal';
 import { AppProvider, useApp } from './context/AppContext';
 import { useUrlBasedNavigation } from './hooks/useUrlBasedNavigation';
 import { getCurrentLocation, navigateTo } from './utils/cockpitHelpers';
@@ -42,6 +43,13 @@ function AppContent(): React.ReactElement {
         return { route: 'store' };
     });
     const [actionInProgress, setActionInProgress] = useState(false);
+    const [isStoreEditorOpen, setIsStoreEditorOpen] = useState(false);
+
+    // Handle store editor save - refresh stores list
+    const handleStoreEditorSave = useCallback(() => {
+        // Refresh stores after enabling/disabling
+        actions.loadStores();
+    }, [actions]);
 
     // Centralized URL-based navigation management
     useUrlBasedNavigation({ state, actions, setRouter });
@@ -333,20 +341,34 @@ function AppContent(): React.ReactElement {
                     {/* Store tabs */}
                     {state.stores.length > 0 && (
                         <FlexItem>
-                            <Tabs
-                                activeKey={getActiveStoreTab()}
-                                onSelect={handleStoreTabChange}
-                                isBox={false}
-                                aria-label="Container store selection"
-                            >
-                                {state.stores.map((store, index) => (
-                                    <Tab
-                                        key={store.id}
-                                        eventKey={index}
-                                        title={<TabTitleText>{store.name}</TabTitleText>}
-                                    />
-                                ))}
-                            </Tabs>
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                                <FlexItem>
+                                    <Tabs
+                                        activeKey={getActiveStoreTab()}
+                                        onSelect={handleStoreTabChange}
+                                        isBox={false}
+                                        aria-label="Container store selection"
+                                    >
+                                        {state.stores.map((store, index) => (
+                                            <Tab
+                                                key={store.id}
+                                                eventKey={index}
+                                                title={<TabTitleText>{store.name}</TabTitleText>}
+                                            />
+                                        ))}
+                                    </Tabs>
+                                </FlexItem>
+                                <FlexItem>
+                                    <Tooltip content="Edit container stores">
+                                        <Button
+                                            variant="plain"
+                                            icon={<PencilAltIcon />}
+                                            onClick={() => setIsStoreEditorOpen(true)}
+                                            aria-label="Edit container stores"
+                                        />
+                                    </Tooltip>
+                                </FlexItem>
+                            </Flex>
                         </FlexItem>
                     )}
 
@@ -376,6 +398,11 @@ function AppContent(): React.ReactElement {
                 </Flex>
             </PageSection>
             {renderContent()}
+            <StoreEditorModal
+                isOpen={isStoreEditorOpen}
+                onClose={() => setIsStoreEditorOpen(false)}
+                onSave={handleStoreEditorSave}
+            />
         </Page>
     );
 }
