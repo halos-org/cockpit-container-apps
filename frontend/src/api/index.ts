@@ -13,9 +13,11 @@ import type {
     GetConfigResponse,
     GetConfigSchemaResponse,
     GetStoreDataResponse,
+    ListStorePackagesResponse,
     Package,
     SetConfigResponse,
     Store,
+    StorePackage,
 } from './types';
 
 /**
@@ -129,6 +131,17 @@ async function executeCommand<T>(
  */
 export async function listStores(): Promise<Store[]> {
     return executeCommand<Store[]>('list-stores');
+}
+
+/**
+ * List all available store packages (installed and not installed)
+ *
+ * Returns store packages identified by the role::container-store tag.
+ * Used by the store editor modal to enable/disable stores.
+ */
+export async function listStorePackages(): Promise<StorePackage[]> {
+    const response = await executeCommand<ListStorePackagesResponse>('list-store-packages');
+    return response.store_packages;
 }
 
 /**
@@ -490,8 +503,10 @@ export type {
     GetConfigResponse,
     GetConfigSchemaResponse,
     GetStoreDataResponse,
+    ListStorePackagesResponse,
     Package,
     SetConfigResponse,
     Store,
     StoreFilters,
+    StorePackage,
 } from './types';

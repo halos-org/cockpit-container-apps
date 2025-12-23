@@ -28,6 +28,7 @@ from cockpit_container_apps.commands import (
     install,
     list_categories,
     list_packages_by_category,
+    list_store_packages,
     list_stores,
     remove,
     set_config,
@@ -46,6 +47,11 @@ def cmd_version(_args: argparse.Namespace) -> dict[str, Any]:
 def cmd_list_stores(_args: argparse.Namespace) -> list[dict[str, Any]]:
     """List available container app stores."""
     return list_stores.execute()
+
+
+def cmd_list_store_packages(_args: argparse.Namespace) -> dict[str, Any]:
+    """List available container store packages (installed and not installed)."""
+    return list_store_packages.execute()
 
 
 def cmd_get_store_data(args: argparse.Namespace) -> dict[str, Any]:
@@ -127,6 +133,14 @@ def create_parser() -> argparse.ArgumentParser:
         "list-stores", help="List available container app stores", add_help=False
     )
     p_list_stores.set_defaults(func=cmd_list_stores)
+
+    # list-store-packages
+    p_list_store_packages = subparsers.add_parser(
+        "list-store-packages",
+        help="List available container store packages (installed and not installed)",
+        add_help=False,
+    )
+    p_list_store_packages.set_defaults(func=cmd_list_store_packages)
 
     # get-store-data
     p_get_store_data = subparsers.add_parser(
@@ -216,6 +230,7 @@ Usage: cockpit-container-apps <command> [arguments]
 Commands:
   version                               Show version information
   list-stores                           List available container app stores
+  list-store-packages                   List available store packages
   get-store-data STORE_ID               Get consolidated store data
   list-categories [--store=ID]          List all categories
   list-packages-by-category CAT [--store=ID]
@@ -264,6 +279,7 @@ def main() -> NoReturn:
         known_commands = {
             "version",
             "list-stores",
+            "list-store-packages",
             "get-store-data",
             "list-categories",
             "list-packages-by-category",
