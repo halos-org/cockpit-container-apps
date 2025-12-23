@@ -17,8 +17,6 @@ import {
     Spinner,
     Stack,
     StackItem,
-    Text,
-    TextContent,
 } from '@patternfly/react-core';
 import {
     listStorePackages,
@@ -155,9 +153,7 @@ export const StoreEditorModal: React.FC<StoreEditorModalProps> = ({
                         {error}
                     </Alert>
                 ) : stores.length === 0 ? (
-                    <TextContent>
-                        <Text>No container stores available.</Text>
-                    </TextContent>
+                    <p>No container stores available.</p>
                 ) : (
                     <Stack hasGutter>
                         {error && (
