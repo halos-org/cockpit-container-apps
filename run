@@ -129,6 +129,23 @@ function build-deb {
   echo "✅ Package build complete"
 }
 
+function lintian {
+  #@ Run lintian checks on built package
+  #@ Category: Debian
+  echo "🔍 Running lintian checks..."
+
+  # Find the latest built package
+  local deb=$(ls -t cockpit-container-apps*.deb 2>/dev/null | head -1)
+  if [ -z "$deb" ]; then
+    echo "❌ No .deb file found. Run ./run build-deb first."
+    exit 1
+  fi
+
+  echo "Checking: $deb"
+  debtools lintian --info --display-info --fail-on error,warning "$deb"
+  echo "✅ Lintian checks passed"
+}
+
 ################################################################################
 # Backend proxy
 

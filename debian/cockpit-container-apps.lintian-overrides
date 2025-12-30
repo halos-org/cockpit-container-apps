@@ -1,0 +1,10 @@
+# Cockpit modules bundle web fonts as part of the application assets
+# These are not system-wide fonts, they're embedded in the web UI
+cockpit-container-apps: font-in-non-font-package [usr/share/cockpit/container-apps/*.woff2]
+cockpit-container-apps: font-outside-font-dir [usr/share/cockpit/container-apps/*.woff2]
+
+# index.html is the Cockpit module entry point, not documentation
+cockpit-container-apps: package-contains-documentation-outside-usr-share-doc [usr/share/cockpit/container-apps/index.html]
+
+# cockpit-container-apps is an internal tool invoked by Cockpit, not a user-facing command
+cockpit-container-apps: no-manual-page [usr/bin/cockpit-container-apps]
