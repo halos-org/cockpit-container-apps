@@ -11,6 +11,7 @@ import { AppDetails } from '../AppDetails';
 
 const mockPackage: Package = {
     name: 'signalk-server',
+    displayName: '',
     version: '2.8.0',
     summary: 'Signal K marine data server for boats',
     section: 'navigation',
@@ -152,6 +153,76 @@ describe('AppDetails', () => {
 
         await userEvent.click(screen.getByRole('button', { name: /back/i }));
         expect(handleBack).toHaveBeenCalled();
+    });
+
+    it('renders displayName when provided', () => {
+        const pkgWithDisplayName = { ...mockPackage, displayName: 'Signal K Server' };
+        render(
+            <AppDetails
+                pkg={pkgWithDisplayName}
+                onInstall={vi.fn()}
+                onUninstall={vi.fn()}
+                onBack={vi.fn()}
+            />
+        );
+        expect(screen.getByText('Signal K Server')).toBeInTheDocument();
+    });
+
+    it('falls back to name when displayName is empty', () => {
+        render(
+            <AppDetails
+                pkg={mockPackage}
+                onInstall={vi.fn()}
+                onUninstall={vi.fn()}
+                onBack={vi.fn()}
+            />
+        );
+        expect(screen.getByText('signalk-server')).toBeInTheDocument();
+    });
+
+    it('shows package name in details when displayName is set', () => {
+        const pkgWithDisplayName = { ...mockPackage, displayName: 'Signal K Server' };
+        render(
+            <AppDetails
+                pkg={pkgWithDisplayName}
+                onInstall={vi.fn()}
+                onUninstall={vi.fn()}
+                onBack={vi.fn()}
+            />
+        );
+        expect(screen.getByText('Package')).toBeInTheDocument();
+        expect(screen.getByText('signalk-server')).toBeInTheDocument();
+    });
+
+    it('hides package name row when displayName is empty', () => {
+        render(
+            <AppDetails
+                pkg={mockPackage}
+                onInstall={vi.fn()}
+                onUninstall={vi.fn()}
+                onBack={vi.fn()}
+            />
+        );
+        expect(screen.queryByText('Package')).not.toBeInTheDocument();
+    });
+
+    it('uses displayName in breadcrumb when provided', () => {
+        const pkgWithDisplayName = { ...mockPackage, displayName: 'Signal K Server' };
+        render(
+            <AppDetails
+                pkg={pkgWithDisplayName}
+                onInstall={vi.fn()}
+                onUninstall={vi.fn()}
+                onBack={vi.fn()}
+                categoryId="navigation"
+                categoryLabel="Navigation"
+                onNavigateToCategories={vi.fn()}
+                onNavigateToCategory={vi.fn()}
+            />
+        );
+        // displayName appears in both heading and breadcrumb
+        const elements = screen.getAllByText('Signal K Server');
+        expect(elements.length).toBeGreaterThanOrEqual(2);
     });
 
     it('disables buttons when action is in progress', () => {

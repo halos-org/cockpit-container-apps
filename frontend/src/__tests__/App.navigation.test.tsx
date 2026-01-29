@@ -98,6 +98,7 @@ vi.mock('../api', () => ({
         packages: [
             {
                 name: 'signalk-server',
+                displayName: '',
                 version: '2.8.0',
                 summary: 'Signal K Server',
                 section: 'navigation',
@@ -107,6 +108,7 @@ vi.mock('../api', () => ({
             },
             {
                 name: 'opencpn',
+                displayName: '',
                 version: '5.8.0',
                 summary: 'OpenCPN',
                 section: 'navigation',
@@ -142,6 +144,7 @@ vi.mock('../api', () => ({
         packages: [
             {
                 name: 'signalk-server',
+                displayName: '',
                 version: '2.8.0',
                 summary: 'Signal K Server',
                 section: 'navigation',
@@ -151,6 +154,7 @@ vi.mock('../api', () => ({
             },
             {
                 name: 'opencpn',
+                displayName: '',
                 version: '5.8.0',
                 summary: 'OpenCPN',
                 section: 'navigation',

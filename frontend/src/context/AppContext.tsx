@@ -176,12 +176,13 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
             }
             // 'all' - no filtering
 
-            // Filter by search query (case-insensitive match in name or summary)
+            // Filter by search query (case-insensitive match in displayName, name, or summary)
             if (searchQuery && searchQuery.trim()) {
                 const query = searchQuery.toLowerCase().trim();
                 filtered = filtered.filter(
                     (pkg) =>
                         pkg.name.toLowerCase().includes(query) ||
+                        (pkg.displayName && pkg.displayName.toLowerCase().includes(query)) ||
                         pkg.summary.toLowerCase().includes(query)
                 );
             }

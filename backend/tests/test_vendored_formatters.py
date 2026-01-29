@@ -63,6 +63,25 @@ class TestFormatPackage:
         assert "upgradable" in result or "installed" in result
 
 
+    def test_format_package_extracts_display_name(self, mock_apt_package):
+        """Test that displayName is extracted from x-display-name debtag."""
+        mock_apt_package.candidate.record = {
+            "Maintainer": "Test <test@example.com>",
+            "Tag": "category::navigation, x-display-name::Signal K Server",
+        }
+        result = format_package(mock_apt_package)
+        assert result["displayName"] == "Signal K Server"
+
+    def test_format_package_display_name_empty_when_absent(self, mock_apt_package):
+        """Test that displayName is empty string when no x-display-name tag."""
+        mock_apt_package.candidate.record = {
+            "Maintainer": "Test <test@example.com>",
+            "Tag": "category::navigation",
+        }
+        result = format_package(mock_apt_package)
+        assert result["displayName"] == ""
+
+
 class TestFormatPackageDetails:
     """Tests for the format_package_details function."""
 
@@ -83,3 +102,20 @@ class TestFormatPackageDetails:
 
         # Should have size information
         assert "size" in result or "installedSize" in result
+
+    def test_format_details_extracts_display_name(self, mock_apt_package):
+        """Test that displayName is extracted from x-display-name debtag."""
+        mock_apt_package.candidate.record = {
+            "Maintainer": "Test <test@example.com>",
+            "Tag": "category::navigation, x-display-name::Signal K Server",
+        }
+        result = format_package_details(mock_apt_package)
+        assert result["displayName"] == "Signal K Server"
+
+    def test_format_details_display_name_empty_when_absent(self, mock_apt_package):
+        """Test that displayName is empty string when no x-display-name tag."""
+        mock_apt_package.candidate.record = {
+            "Maintainer": "Test <test@example.com>",
+        }
+        result = format_package_details(mock_apt_package)
+        assert result["displayName"] == ""

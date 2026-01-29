@@ -137,7 +137,7 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
                             level="app"
                             categoryId={categoryId}
                             categoryLabel={categoryLabel}
-                            appName={pkg.name}
+                            appName={pkg.displayName || pkg.name}
                             onNavigateToCategories={onNavigateToCategories}
                             onNavigateToCategory={onNavigateToCategory}
                         />
@@ -170,7 +170,7 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
                                     />
                                 </FlexItem>
                                 <FlexItem>
-                                    <Title headingLevel="h1">{pkg.name}</Title>
+                                    <Title headingLevel="h1">{pkg.displayName || pkg.name}</Title>
                                 </FlexItem>
                                 <FlexItem>
                                     <Badge isRead>{pkg.version}</Badge>
@@ -255,6 +255,14 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
                     <Card>
                         <CardBody>
                             <DescriptionList>
+                                {pkg.displayName && (
+                                    <DescriptionListGroup>
+                                        <DescriptionListTerm>Package</DescriptionListTerm>
+                                        <DescriptionListDescription>
+                                            {pkg.name}
+                                        </DescriptionListDescription>
+                                    </DescriptionListGroup>
+                                )}
                                 <DescriptionListGroup>
                                     <DescriptionListTerm>Version</DescriptionListTerm>
                                     <DescriptionListDescription>

@@ -143,6 +143,7 @@ describe('Routing Utilities', () => {
         it('should build app path from app route', () => {
             const mockPackage: Package = {
                 name: 'signalk-server',
+                displayName: '',
                 version: '2.8.0',
                 summary: 'Signal K Server',
                 section: 'navigation',
@@ -231,6 +232,7 @@ describe('Routing Utilities', () => {
         it('should include both store and filter in query params', () => {
             const mockPackage: Package = {
                 name: 'signalk-server',
+                displayName: '',
                 version: '2.8.0',
                 summary: 'Signal K Server',
                 section: 'navigation',
@@ -404,6 +406,7 @@ describe('Routing Utilities', () => {
         it('should preserve app name through parse and build', () => {
             const mockPackage: Package = {
                 name: 'signalk-server',
+                displayName: '',
                 version: '2.8.0',
                 summary: 'Signal K Server',
                 section: 'navigation',

@@ -97,6 +97,7 @@ export interface Category {
  */
 export interface Package {
     name: string;
+    displayName: string;
     version: string;
     summary: string;
     section: string;
