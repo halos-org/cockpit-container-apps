@@ -48,6 +48,7 @@ vi.mock('../api', () => ({
         packages: [
             {
                 name: 'signalk-server',
+                displayName: '',
                 version: '2.8.0',
                 summary: 'Signal K',
                 section: 'navigation',
@@ -73,6 +74,7 @@ vi.mock('../api', () => ({
         packages: [
             {
                 name: 'signalk-server',
+                displayName: '',
                 version: '2.8.0',
                 summary: 'Signal K',
                 section: 'navigation',

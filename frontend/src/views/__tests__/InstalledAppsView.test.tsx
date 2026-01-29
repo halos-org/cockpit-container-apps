@@ -11,6 +11,7 @@ import { InstalledAppsView } from '../InstalledAppsView';
 const mockInstalledPackages: Package[] = [
     {
         name: 'signalk-server',
+        displayName: '',
         version: '2.8.0',
         summary: 'Signal K marine data server',
         section: 'navigation',
@@ -20,6 +21,7 @@ const mockInstalledPackages: Package[] = [
     },
     {
         name: 'grafana',
+        displayName: '',
         version: '10.0.0',
         summary: 'Analytics and visualization',
         section: 'monitoring',

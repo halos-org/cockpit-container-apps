@@ -11,6 +11,7 @@ import { AppListView } from '../AppListView';
 const mockPackages: Package[] = [
     {
         name: 'signalk-server',
+        displayName: '',
         version: '2.8.0',
         summary: 'Signal K marine data server',
         section: 'navigation',
@@ -20,6 +21,7 @@ const mockPackages: Package[] = [
     },
     {
         name: 'influxdb',
+        displayName: '',
         version: '2.7.1',
         summary: 'Time series database',
         section: 'database',
@@ -29,6 +31,7 @@ const mockPackages: Package[] = [
     },
     {
         name: 'grafana',
+        displayName: '',
         version: '10.0.0',
         summary: 'Analytics and visualization',
         section: 'monitoring',

@@ -22,6 +22,7 @@ Output Considerations:
 Field Mappings:
     Package (list view):
         - name: Package name
+        - displayName: Human-readable name from x-display-name debtag (or empty)
         - summary: One-line description
         - version: Candidate version
         - installed: Boolean installation status
@@ -94,8 +95,13 @@ def format_package(pkg: Any) -> dict[str, Any]:
     # Extract categories from debtags (container-apps extension)
     categories = get_tags_by_facet(pkg, "category")
 
+    # Extract display name from debtags
+    display_names = get_tags_by_facet(pkg, "x-display-name")
+    display_name = display_names[0] if display_names else ""
+
     return {
         "name": pkg.name,
+        "displayName": display_name,
         "summary": candidate.summary if candidate else "",
         "version": version,
         "installed": pkg.is_installed,
@@ -116,12 +122,21 @@ def format_package_details(pkg: Any) -> dict[str, Any]:
     Returns:
         Dictionary with comprehensive package information
     """
+    from cockpit_container_apps.vendor.cockpit_apt_utils.debtag_parser import (
+        get_tags_by_facet,
+    )
+
     candidate = pkg.candidate
     installed_version = pkg.installed
+
+    # Extract display name from debtags
+    display_names = get_tags_by_facet(pkg, "x-display-name")
+    display_name = display_names[0] if display_names else ""
 
     # Basic information
     result: dict[str, Any] = {
         "name": pkg.name,
+        "displayName": display_name,
         "summary": candidate.summary if candidate else "",
         "description": candidate.description if candidate else "",
         "section": candidate.section if candidate else "unknown",

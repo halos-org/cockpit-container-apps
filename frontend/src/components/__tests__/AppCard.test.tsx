@@ -10,6 +10,7 @@ import { AppCard } from '../AppCard';
 
 const mockPackage: Package = {
     name: 'signalk-server',
+    displayName: '',
     version: '2.8.0',
     summary: 'Signal K marine data server for boats',
     section: 'navigation',
@@ -74,5 +75,23 @@ describe('AppCard', () => {
     it('has accessible label', () => {
         render(<AppCard pkg={mockPackage} onSelect={vi.fn()} />);
         expect(screen.getByRole('button')).toHaveAccessibleName(/signalk-server/i);
+    });
+
+    it('renders displayName when provided', () => {
+        const pkgWithDisplayName = { ...mockPackage, displayName: 'Signal K Server' };
+        render(<AppCard pkg={pkgWithDisplayName} onSelect={vi.fn()} />);
+        expect(screen.getByText('Signal K Server')).toBeInTheDocument();
+        expect(screen.queryByText('signalk-server')).not.toBeInTheDocument();
+    });
+
+    it('falls back to name when displayName is empty', () => {
+        render(<AppCard pkg={mockPackage} onSelect={vi.fn()} />);
+        expect(screen.getByText('signalk-server')).toBeInTheDocument();
+    });
+
+    it('uses displayName in accessible label when provided', () => {
+        const pkgWithDisplayName = { ...mockPackage, displayName: 'Signal K Server' };
+        render(<AppCard pkg={pkgWithDisplayName} onSelect={vi.fn()} />);
+        expect(screen.getByRole('button')).toHaveAccessibleName(/Signal K Server/);
     });
 });

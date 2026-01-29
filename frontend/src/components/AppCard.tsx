@@ -37,7 +37,7 @@ export const AppCard: React.FC<AppCardProps> = ({ pkg, onSelect }) => {
             style={{ height: '100%' }}
             tabIndex={0}
             role="button"
-            aria-label={`View details for ${pkg.name}`}
+            aria-label={`View details for ${pkg.displayName || pkg.name}`}
         >
             <CardHeader>
                 <CubeIcon
@@ -49,7 +49,7 @@ export const AppCard: React.FC<AppCardProps> = ({ pkg, onSelect }) => {
             </CardHeader>
 
             <CardTitle>
-                {pkg.name}
+                {pkg.displayName || pkg.name}
                 <Badge isRead style={{ marginLeft: '0.5rem' }}>
                     {pkg.version}
                 </Badge>
