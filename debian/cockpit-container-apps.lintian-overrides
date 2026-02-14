@@ -8,3 +8,6 @@ cockpit-container-apps: package-contains-documentation-outside-usr-share-doc [us
 
 # cockpit-container-apps is an internal tool invoked by Cockpit, not a user-facing command
 cockpit-container-apps: no-manual-page [usr/bin/cockpit-container-apps]
+
+# CI generates debian/changelog dynamically, so there is no ITP bug to close
+cockpit-container-apps: initial-upload-closes-no-bugs
