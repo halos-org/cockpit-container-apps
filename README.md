@@ -89,7 +89,7 @@ cd frontend && npm install
 
 ### Vendored Utilities
 
-This project vendors utilities from [cockpit-apt](https://github.com/hatlabs/cockpit-apt) to avoid a package dependency. The vendoring is done at build time:
+This project vendors utilities from [cockpit-apt](https://github.com/halos-org/cockpit-apt) to avoid a package dependency. The vendoring is done at build time:
 
 ```bash
 # Update vendored utilities
@@ -109,7 +109,7 @@ The vendored utilities include:
 
 ## Part of HaLOS
 
-This module is part of the [HaLOS](https://github.com/hatlabs/halos-distro) distribution.
+This module is part of the [HaLOS](https://github.com/halos-org/halos-distro) distribution.
 
 ## License
 

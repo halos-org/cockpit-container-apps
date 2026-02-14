@@ -5,7 +5,7 @@
 set -e
 
 COCKPIT_APT_VERSION="${COCKPIT_APT_VERSION:-v0.2.0+8}"
-COCKPIT_APT_REPO="https://github.com/hatlabs/cockpit-apt.git"
+COCKPIT_APT_REPO="https://github.com/halos-org/cockpit-apt.git"
 VENDOR_DIR="backend/cockpit_container_apps/vendor/cockpit_apt_utils"
 
 echo "Vendoring utilities from cockpit-apt ${COCKPIT_APT_VERSION}..."
