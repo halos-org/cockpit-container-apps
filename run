@@ -20,7 +20,7 @@ readonly PROJECT_ROOT=$(pwd)
 readonly SCRIPT="$PROJECT_ROOT/$(basename "$0")"
 
 # cockpit-apt repository for vendoring
-readonly COCKPIT_APT_REPO="https://github.com/hatlabs/cockpit-apt.git"
+readonly COCKPIT_APT_REPO="https://github.com/halos-org/cockpit-apt.git"
 readonly COCKPIT_APT_VERSION="${COCKPIT_APT_VERSION:-v0.2.0+8}"
 
 ################################################################################
