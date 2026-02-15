@@ -109,7 +109,7 @@ The vendored utilities include:
 
 ## Part of HaLOS
 
-This module is part of the [HaLOS](https://github.com/halos-org/halos-distro) distribution.
+This module is part of the [HaLOS](https://github.com/halos-org/halos) distribution.
 
 ## License
 
