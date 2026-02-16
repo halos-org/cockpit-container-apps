@@ -2,12 +2,21 @@
  * Application state management with React Context
  */
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import {
     ContainerAppsError,
     getStoreData,
     listCategories,
     listStores,
+    updatePackageLists,
 } from '../api';
 import type { Category, FilterParams, Package, Store } from '../api/types';
 import {
@@ -45,6 +54,7 @@ export interface AppState {
     error: string | null;
     packagesLoading: boolean;
     packagesError: string | null;
+    updatingPackageLists: boolean;
 
     // Metadata
     totalPackageCount: number;
@@ -101,6 +111,7 @@ const initialState: AppState = {
     error: null,
     packagesLoading: false,
     packagesError: null,
+    updatingPackageLists: false,
     totalPackageCount: 0,
     limitedResults: false,
 };
@@ -112,6 +123,7 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
     const [state, setState] = useState<AppState>(initialState);
     const searchDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const loadRequestId = useRef(0); // Track request IDs to handle race conditions
+    const aptUpdateInFlight = useRef(false); // Guard against concurrent auto-updates
 
     // Load stores on mount
     const loadStores = useCallback(async () => {
@@ -134,24 +146,21 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
     }, []);
 
     // Load categories - now loads all count states at once
-    const loadCategories = useCallback(
-        async (storeId?: string) => {
-            setState((prev) => {
-                // Load categories without tab filter - backend returns all count states
-                listCategories(storeId)
-                    .then((categories) => {
-                        setState((current) => ({ ...current, categories, loading: false }));
-                    })
-                    .catch((e) => {
-                        const error = e instanceof ContainerAppsError ? e.message : String(e);
-                        setState((current) => ({ ...current, error, loading: false }));
-                    });
+    const loadCategories = useCallback(async (storeId?: string) => {
+        setState((prev) => {
+            // Load categories without tab filter - backend returns all count states
+            listCategories(storeId)
+                .then((categories) => {
+                    setState((current) => ({ ...current, categories, loading: false }));
+                })
+                .catch((e) => {
+                    const error = e instanceof ContainerAppsError ? e.message : String(e);
+                    setState((current) => ({ ...current, error, loading: false }));
+                });
 
-                return { ...prev, loading: true, error: null };
-            });
-        },
-        []
-    );
+            return { ...prev, loading: true, error: null };
+        });
+    }, []);
 
     // Helper function to filter packages client-side
     const filterPackagesClientSide = useCallback(
@@ -252,9 +261,57 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
                                 packages: filtered,
                                 totalPackageCount: filtered.length,
                                 limitedResults: false,
-                                loading: false, // Categories loaded
+                                loading: false,
                                 packagesLoading: false,
                             }));
+
+                            // Auto-trigger apt update if package lists are missing
+                            if (!response.apt_lists_populated && !aptUpdateInFlight.current) {
+                                aptUpdateInFlight.current = true;
+                                setState((current) => ({
+                                    ...current,
+                                    updatingPackageLists: true,
+                                }));
+                                updatePackageLists()
+                                    .then(() => {
+                                        // Reload with fresh state (avoid stale closure)
+                                        loadRequestId.current++;
+                                        return getStoreData(storeId);
+                                    })
+                                    .then((freshResponse) => {
+                                        // Read current filters from state to avoid stale closure
+                                        setState((current) => {
+                                            const freshFiltered = filterPackagesClientSide(
+                                                freshResponse.packages,
+                                                current.activeCategory,
+                                                current.installFilter,
+                                                current.searchQuery
+                                            );
+                                            return {
+                                                ...current,
+                                                updatingPackageLists: false,
+                                                allPackages: freshResponse.packages,
+                                                categories: freshResponse.categories,
+                                                packages: freshFiltered,
+                                                totalPackageCount: freshFiltered.length,
+                                                loading: false,
+                                                packagesLoading: false,
+                                            };
+                                        });
+                                    })
+                                    .catch((e) => {
+                                        const msg =
+                                            e instanceof ContainerAppsError ? e.message : String(e);
+                                        setState((current) => ({
+                                            ...current,
+                                            updatingPackageLists: false,
+                                            error: msg,
+                                        }));
+                                    })
+                                    .finally(() => {
+                                        aptUpdateInFlight.current = false;
+                                    });
+                            }
                         })
                         .catch((e) => {
                             // Ignore errors from stale requests

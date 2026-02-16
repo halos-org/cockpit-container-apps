@@ -59,13 +59,13 @@ function AppContent(): React.ReactElement {
         if (router.route === 'app' && router.selectedPackage) {
             // Search in allPackages (unfiltered) to find the updated package
             // Don't use state.packages as it may be filtered out after install/uninstall
-            const updatedPkg = state.allPackages.find((p) => p.name === router.selectedPackage?.name);
+            const updatedPkg = state.allPackages.find(
+                (p) => p.name === router.selectedPackage?.name
+            );
             if (updatedPkg && updatedPkg.installed !== router.selectedPackage.installed) {
                 // Package install state changed - update router
                 setRouter((current) =>
-                    current.route === 'app'
-                        ? { ...current, selectedPackage: updatedPkg }
-                        : current
+                    current.route === 'app' ? { ...current, selectedPackage: updatedPkg } : current
                 );
             }
         }
@@ -324,6 +324,7 @@ function AppContent(): React.ReactElement {
                 onNavigate={handleCategorySelect}
                 onRetry={() => actions.loadCategories()}
                 title="Browse Categories"
+                updatingPackageLists={state.updatingPackageLists}
             />
         );
     };
@@ -341,7 +342,10 @@ function AppContent(): React.ReactElement {
                     {/* Store tabs */}
                     {state.stores.length > 0 && (
                         <FlexItem>
-                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                            <Flex
+                                alignItems={{ default: 'alignItemsCenter' }}
+                                gap={{ default: 'gapSm' }}
+                            >
                                 <FlexItem>
                                     <Tabs
                                         activeKey={getActiveStoreTab()}
@@ -374,7 +378,10 @@ function AppContent(): React.ReactElement {
 
                     {/* Install filter toggle and refresh button */}
                     <FlexItem>
-                        <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+                        <Flex
+                            gap={{ default: 'gapMd' }}
+                            alignItems={{ default: 'alignItemsCenter' }}
+                        >
                             <FlexItem>
                                 <FilterToggleGroup
                                     selectedFilter={state.installFilter}

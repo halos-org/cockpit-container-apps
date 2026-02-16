@@ -11,6 +11,7 @@ from cockpit_container_apps.commands import (
     list_stores,
     remove,
     set_config,
+    update,
 )
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "list_stores",
     "remove",
     "set_config",
+    "update",
 ]

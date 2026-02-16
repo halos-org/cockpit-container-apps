@@ -32,6 +32,7 @@ from cockpit_container_apps.commands import (
     list_stores,
     remove,
     set_config,
+    update,
 )
 from cockpit_container_apps.utils.formatters import to_json
 from cockpit_container_apps.vendor.cockpit_apt_utils.errors import APTBridgeError, format_error
@@ -111,6 +112,11 @@ def cmd_set_config(args: argparse.Namespace) -> dict[str, Any]:
         raise APTBridgeError(f"Invalid JSON: {e}", code="INVALID_JSON") from None
 
     return set_config.execute(args.package, config_dict)
+
+
+def cmd_update(_args: argparse.Namespace) -> dict[str, Any] | None:
+    """Update package lists."""
+    return update.execute()
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -216,6 +222,12 @@ def create_parser() -> argparse.ArgumentParser:
     p_set_config.add_argument("config_json", help="Configuration as JSON string")
     p_set_config.set_defaults(func=cmd_set_config)
 
+    # update
+    p_update = subparsers.add_parser(
+        "update", help="Update package lists (with progress)", add_help=False
+    )
+    p_update.set_defaults(func=cmd_update)
+
     # help (manual handling)
     subparsers.add_parser("help", help="Show help message", add_help=False)
 
@@ -247,6 +259,7 @@ Commands:
   get-config-schema PACKAGE             Get configuration schema
   get-config PACKAGE                    Get current configuration
   set-config PACKAGE JSON               Set configuration
+  update                                Update package lists (with progress)
 
 Examples:
   cockpit-container-apps version
@@ -289,6 +302,7 @@ def main() -> NoReturn:
             "get-config-schema",
             "get-config",
             "set-config",
+            "update",
             "help",
         }
         if sys.argv[1] not in known_commands:
