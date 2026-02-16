@@ -38,6 +38,8 @@ export interface CategoriesViewProps {
     onRetry: () => void;
     /** Optional title for the view */
     title?: string;
+    /** Whether package lists are being updated */
+    updatingPackageLists?: boolean;
 }
 
 export const CategoriesView: React.FC<CategoriesViewProps> = ({
@@ -47,6 +49,7 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
     onNavigate,
     onRetry,
     title,
+    updatingPackageLists,
 }) => {
     // Loading state
     if (isLoading) {
@@ -84,8 +87,20 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
         );
     }
 
-    // Empty state
+    // Empty state - show updating message if apt update is in progress
     if (categories.length === 0) {
+        if (updatingPackageLists) {
+            return (
+                <PageSection>
+                    <EmptyState titleText="Updating package lists..." headingLevel="h3">
+                        <EmptyStateBody>
+                            <Spinner size="xl" aria-label="Updating package lists" />
+                        </EmptyStateBody>
+                    </EmptyState>
+                </PageSection>
+            );
+        }
+
         return (
             <PageSection>
                 <EmptyState titleText="No categories available" icon={CubesIcon} headingLevel="h2">

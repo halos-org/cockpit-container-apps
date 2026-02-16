@@ -146,6 +146,7 @@ export interface GetStoreDataResponse {
     };
     packages: Package[];
     categories: Category[];
+    apt_lists_populated: boolean;
 }
 
 /**

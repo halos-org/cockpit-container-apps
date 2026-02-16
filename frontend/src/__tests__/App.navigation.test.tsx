@@ -139,6 +139,7 @@ vi.mock('../api', () => ({
                 count_installed: 0,
             },
         ],
+        apt_lists_populated: true,
     }),
     filterPackages: vi.fn().mockResolvedValue({
         packages: [
@@ -166,6 +167,8 @@ vi.mock('../api', () => ({
         total_count: 2,
         limited: false,
     }),
+    updatePackageLists: vi.fn().mockResolvedValue(undefined),
+    formatErrorMessage: vi.fn((e: unknown) => String(e)),
     ContainerAppsError: class extends Error {},
 }));
 

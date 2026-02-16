@@ -150,9 +150,7 @@ export async function listStorePackages(): Promise<StorePackage[]> {
  * Returns all count states (all, available, installed) in a single response,
  * enabling instant filter switching without reloading categories.
  */
-export async function listCategories(
-    storeId?: string
-): Promise<Category[]> {
+export async function listCategories(storeId?: string): Promise<Category[]> {
     const args: string[] = [];
     if (storeId) {
         // Use --key=value format to prevent argument injection
@@ -314,12 +312,7 @@ export async function installPackage(
                 // Not JSON, treat as plain error message
             }
 
-            reject(
-                new ContainerAppsError(
-                    errorStr || 'Install command failed',
-                    'INSTALL_FAILED'
-                )
-            );
+            reject(new ContainerAppsError(errorStr || 'Install command failed', 'INSTALL_FAILED'));
         });
     });
 }
@@ -406,12 +399,86 @@ export async function removePackage(
                 // Not JSON, treat as plain error message
             }
 
-            reject(
-                new ContainerAppsError(
-                    errorStr || 'Remove command failed',
-                    'REMOVE_FAILED'
-                )
-            );
+            reject(new ContainerAppsError(errorStr || 'Remove command failed', 'REMOVE_FAILED'));
+        });
+    });
+}
+
+/**
+ * Update APT package lists with progress reporting
+ */
+export async function updatePackageLists(onProgress?: ProgressCallback): Promise<void> {
+    return new Promise((resolve, reject) => {
+        let settled = false;
+
+        const proc = cockpit.spawn(['cockpit-container-apps', 'update'], {
+            err: 'out',
+            superuser: 'require',
+        });
+
+        let stdout = '';
+
+        proc.stream((data: string) => {
+            stdout += data;
+
+            const lines = stdout.split('\n');
+            stdout = lines.pop() || '';
+
+            for (const line of lines) {
+                if (!line.trim()) continue;
+
+                try {
+                    const parsed = JSON.parse(line);
+
+                    if (parsed.type === 'progress' && onProgress) {
+                        onProgress(parsed.percentage, parsed.message);
+                    }
+
+                    if (parsed.success) {
+                        if (!settled) {
+                            settled = true;
+                            resolve();
+                        }
+                    }
+
+                    if (parsed.error) {
+                        if (!settled) {
+                            settled = true;
+                            reject(
+                                new ContainerAppsError(parsed.error, parsed.code, parsed.details)
+                            );
+                        }
+                    }
+                } catch (e) {
+                    // Ignore parse errors for incomplete lines
+                }
+            }
+        });
+
+        proc.done(() => {
+            if (!settled) {
+                settled = true;
+                resolve();
+            }
+        });
+
+        proc.fail((error: unknown, data: string | null) => {
+            if (settled) return;
+            settled = true;
+
+            const errorStr = String(error || data || '');
+
+            try {
+                const parsed = JSON.parse(errorStr);
+                if (parsed.error) {
+                    reject(new ContainerAppsError(parsed.error, parsed.code, parsed.details));
+                    return;
+                }
+            } catch {
+                // Not JSON, treat as plain error message
+            }
+
+            reject(new ContainerAppsError(errorStr || 'Update command failed', 'UPDATE_FAILED'));
         });
     });
 }

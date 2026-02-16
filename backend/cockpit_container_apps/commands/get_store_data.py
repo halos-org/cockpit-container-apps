@@ -6,6 +6,7 @@ response to reduce API roundtrips. This replaces separate calls to list-stores,
 list-categories, and filter-packages.
 """
 
+from pathlib import Path
 from typing import Any
 
 from cockpit_container_apps.utils.formatters import format_package
@@ -19,6 +20,8 @@ from cockpit_container_apps.vendor.cockpit_apt_utils.debtag_parser import (
     get_tags_by_facet,
 )
 from cockpit_container_apps.vendor.cockpit_apt_utils.errors import APTBridgeError, CacheError
+
+APT_LISTS_DIR = Path("/var/lib/apt/lists")
 
 
 def execute(store_id: str) -> dict[str, Any]:
@@ -64,6 +67,11 @@ def execute(store_id: str) -> dict[str, Any]:
         cache = apt.Cache()
     except Exception as e:
         raise CacheError("Failed to open APT cache", details=str(e)) from e
+
+    # Check if apt package lists have been downloaded
+    apt_lists_populated = (
+        any(APT_LISTS_DIR.glob("*_Packages*")) if APT_LISTS_DIR.is_dir() else False
+    )
 
     try:
         # Load store configuration
@@ -190,6 +198,7 @@ def execute(store_id: str) -> dict[str, Any]:
             "store": store_dict,
             "packages": packages,
             "categories": categories_list,
+            "apt_lists_populated": apt_lists_populated,
         }
 
     except APTBridgeError:
