@@ -18,6 +18,8 @@ import {
     FlexItem,
     Label,
     PageSection,
+    Progress,
+    ProgressSize,
     Spinner,
     Title,
 } from '@patternfly/react-core';
@@ -27,6 +29,7 @@ import { formatErrorMessage, getConfig, getConfigSchema, setConfig } from '../ap
 import type { ConfigSchema, ConfigValues, Package } from '../api/types';
 import { BreadcrumbNav } from './BreadcrumbNav';
 import { ConfigForm } from './ConfigForm';
+import { ServiceLog } from './ServiceLog';
 
 export interface AppDetailsProps {
     /** Package to display */
@@ -39,6 +42,8 @@ export interface AppDetailsProps {
     onBack: () => void;
     /** Whether an action (install/uninstall) is in progress */
     isActionInProgress?: boolean;
+    /** Current action progress (percentage + message) */
+    actionProgress?: { percentage: number; message: string } | null;
     /** Category ID for breadcrumb navigation */
     categoryId?: string;
     /** Category label for breadcrumb display */
@@ -55,6 +60,7 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
     onUninstall,
     onBack,
     isActionInProgress = false,
+    actionProgress,
     categoryId,
     categoryLabel,
     onNavigateToCategories,
@@ -250,6 +256,18 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
                     </FlexItem>
                 )}
 
+                {/* Action progress bar */}
+                {isActionInProgress && actionProgress && (
+                    <FlexItem>
+                        <Progress
+                            value={actionProgress.percentage}
+                            title={actionProgress.message}
+                            size={ProgressSize.sm}
+                            aria-label="Action progress"
+                        />
+                    </FlexItem>
+                )}
+
                 {/* Details card */}
                 <FlexItem>
                     <Card>
@@ -318,6 +336,13 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
                                 </CardBody>
                             </Card>
                         )}
+                    </FlexItem>
+                )}
+
+                {/* Service log - only for installed apps */}
+                {pkg.installed && (
+                    <FlexItem>
+                        <ServiceLog packageName={pkg.name} />
                     </FlexItem>
                 )}
             </Flex>
