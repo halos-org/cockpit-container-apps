@@ -10,6 +10,7 @@ from cockpit_container_apps.commands import (
     list_packages_by_category,
     list_stores,
     remove,
+    service_journal,
     set_config,
     update,
 )
@@ -24,6 +25,7 @@ __all__ = [
     "list_packages_by_category",
     "list_stores",
     "remove",
+    "service_journal",
     "set_config",
     "update",
 ]
