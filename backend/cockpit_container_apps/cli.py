@@ -31,6 +31,7 @@ from cockpit_container_apps.commands import (
     list_store_packages,
     list_stores,
     remove,
+    service_journal,
     set_config,
     update,
 )
@@ -117,6 +118,11 @@ def cmd_set_config(args: argparse.Namespace) -> dict[str, Any]:
 def cmd_update(_args: argparse.Namespace) -> dict[str, Any] | None:
     """Update package lists."""
     return update.execute()
+
+
+def cmd_service_journal(args: argparse.Namespace) -> None:
+    """Stream service journal entries."""
+    return service_journal.execute(args.package, lines=args.lines)
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -228,6 +234,14 @@ def create_parser() -> argparse.ArgumentParser:
     )
     p_update.set_defaults(func=cmd_update)
 
+    # service-journal
+    p_journal = subparsers.add_parser(
+        "service-journal", help="Stream service journal entries", add_help=False
+    )
+    p_journal.add_argument("package", help="Package name")
+    p_journal.add_argument("--lines", type=int, default=50, help="Number of recent lines (default: 50)")
+    p_journal.set_defaults(func=cmd_service_journal)
+
     # help (manual handling)
     subparsers.add_parser("help", help="Show help message", add_help=False)
 
@@ -260,6 +274,7 @@ Commands:
   get-config PACKAGE                    Get current configuration
   set-config PACKAGE JSON               Set configuration
   update                                Update package lists (with progress)
+  service-journal PACKAGE [--lines=N]   Stream service journal entries
 
 Examples:
   cockpit-container-apps version
@@ -303,6 +318,7 @@ def main() -> NoReturn:
             "get-config",
             "set-config",
             "update",
+            "service-journal",
             "help",
         }
         if sys.argv[1] not in known_commands:

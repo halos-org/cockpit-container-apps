@@ -484,6 +484,81 @@ export async function updatePackageLists(onProgress?: ProgressCallback): Promise
 }
 
 /**
+ * Handle for a live journal stream.
+ * Call close() to stop streaming (e.g., on component unmount).
+ */
+export interface JournalStreamHandle {
+    close: () => void;
+}
+
+/**
+ * Stream systemd journal entries for a container app's service.
+ *
+ * Returns a handle with a close() method. The onLine callback is called
+ * for each journal line received. The stream stays open (journalctl -f)
+ * until close() is called or the process exits.
+ */
+export function streamServiceJournal(
+    packageName: string,
+    onLine: (line: string) => void,
+    options?: { lines?: number; onError?: (message: string) => void; onClose?: () => void }
+): JournalStreamHandle {
+    const args = ['cockpit-container-apps', 'service-journal', packageName];
+    if (options?.lines !== undefined) {
+        args.push(`--lines=${options.lines}`);
+    }
+
+    const proc = cockpit.spawn(args, {
+        err: 'message',
+        superuser: 'try',
+    });
+
+    let buffer = '';
+    let closed = false;
+
+    proc.stream((data: string) => {
+        buffer += data;
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const rawLine of lines) {
+            if (!rawLine.trim()) continue;
+
+            try {
+                const parsed = JSON.parse(rawLine);
+                if (parsed.type === 'journal') {
+                    onLine(parsed.line);
+                }
+            } catch {
+                // Non-JSON line — pass through as-is
+                onLine(rawLine);
+            }
+        }
+    });
+
+    proc.done(() => {
+        if (!closed) {
+            options?.onClose?.();
+        }
+    });
+
+    proc.fail((error: unknown) => {
+        if (!closed) {
+            const message = error ? String(error) : 'Journal stream failed';
+            options?.onError?.(message);
+        }
+    });
+
+    return {
+        close: () => {
+            closed = true;
+            proc.close('terminated');
+        },
+    };
+}
+
+/**
  * Get configuration schema for a package
  */
 export async function getConfigSchema(packageName: string): Promise<ConfigSchema> {
