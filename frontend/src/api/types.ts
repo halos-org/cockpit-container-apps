@@ -104,6 +104,7 @@ export interface Package {
     installed: boolean;
     upgradable: boolean;
     categories: string[]; // Category tags for client-side filtering
+    status?: string | null; // Status from status::* debtag (e.g., "experimental")
     repository_id?: string;
     installedVersion?: string;
     candidateVersion?: string;

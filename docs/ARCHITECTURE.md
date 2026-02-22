@@ -197,7 +197,7 @@ Categories organize apps within a store. Each has an identifier, a display label
 
 ### App Model
 
-An app represents a container application package. Core attributes include name, summary description, version, and installation status. Filter-related attributes include the package's origin and debtags. Display attributes include the full description and optional icon.
+An app represents a container application package. Core attributes include name, summary description, version, and installation status. The optional `status` field (from `status::*` debtags) indicates maturity level (e.g., experimental, beta, deprecated) and drives UI badges and install confirmation dialogs. Filter-related attributes include the package's origin and debtags. Display attributes include the full description and optional icon.
 
 ### Config Schema Model
 
@@ -227,11 +227,11 @@ The module provides multiple views for browsing and managing container apps. Coc
 
 **Category View**: The landing page for a store displays categories as cards in a grid. Each card shows the category name, description, icon, and app count. Clicking a category card navigates to the app list for that category.
 
-**App List View**: Shows apps within a selected category as a grid of cards. Each app card displays name, summary, icon, and installation status. Clicking an app card navigates to the app details view.
+**App List View**: Shows apps within a selected category as a grid of cards. Each app card displays name, summary, icon, installation status, and optional status badge. Clicking an app card navigates to the app details view.
 
 **Installed Apps View**: A separate view listing all installed container apps regardless of category. Provides quick access to configuration and removal for apps the user has already installed.
 
-**App Details View**: Full page view for a selected app. Shows complete description, version information, installation status, and install/remove button. For installed apps, includes the configuration section.
+**App Details View**: Full page view for a selected app. Shows complete description, version information, installation status, optional status badge and warning alert, and install/remove button. Apps with a status warning require install confirmation via a modal dialog. For installed apps, includes the configuration section.
 
 **Configuration Form**: Dynamic form generated from the app's config.yml schema. Groups fields visually by the schema's group definitions. Each field renders with appropriate input control based on type. Appears within the app details view for installed apps.
 

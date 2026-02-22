@@ -9,6 +9,7 @@ import { Badge, Card, CardBody, CardHeader, CardTitle, Label } from '@patternfly
 import { CubeIcon } from '@patternfly/react-icons';
 import React from 'react';
 import type { Package } from '../api/types';
+import { getStatusConfig } from '../utils/appStatus';
 
 export interface AppCardProps {
     /** Package data to display */
@@ -28,6 +29,8 @@ export const AppCard: React.FC<AppCardProps> = ({ pkg, onSelect }) => {
             handleClick();
         }
     };
+
+    const statusConfig = getStatusConfig(pkg.status);
 
     return (
         <Card
@@ -57,6 +60,11 @@ export const AppCard: React.FC<AppCardProps> = ({ pkg, onSelect }) => {
 
             <CardBody>
                 <div style={{ marginBottom: '0.5rem' }}>
+                    {statusConfig && (
+                        <Label color={statusConfig.color} isCompact style={{ marginRight: '0.5rem' }}>
+                            {statusConfig.label}
+                        </Label>
+                    )}
                     {pkg.installed && (
                         <Label color="green" isCompact style={{ marginRight: '0.5rem' }}>
                             Installed
