@@ -1,6 +1,6 @@
 {
   "name": "cockpit-container-apps",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Container app management module for Cockpit",
   "private": true,
   "type": "module",
