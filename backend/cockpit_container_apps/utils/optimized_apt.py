@@ -59,26 +59,22 @@ def get_package_names_by_origin_fast(origin_name: str) -> set[str]:
 
     # Iterate at C++ level - much faster than apt.Cache
     for pkg in cache.packages:
-        # Check if package has a candidate version
         if not pkg.current_ver and not pkg.has_versions:
             continue
 
-        # Get the version to check (prefer current, fall back to any version)
-        if pkg.current_ver:
-            ver = pkg.current_ver
-        elif pkg.version_list:
-            ver = pkg.version_list[0]
-        else:
-            continue
-
-        # Check origins in version files
-        for ver_file, _index in ver.file_list:
-            # Check origin field first, fall back to label
-            pkg_origin = ver_file.origin or ver_file.label or ""
-
-            if pkg_origin == origin_name:
-                matching_names.add(pkg.name)
-                break  # Found a match, no need to check other files
+        # Check ALL versions for origin match, not just current_ver.
+        # Installed packages have current_ver from dpkg status (empty origin),
+        # but the repo version has the real origin metadata.
+        found = False
+        for ver in pkg.version_list:
+            if found:
+                break
+            for ver_file, _index in ver.file_list:
+                pkg_origin = ver_file.origin or ver_file.label or ""
+                if pkg_origin == origin_name:
+                    matching_names.add(pkg.name)
+                    found = True
+                    break
 
     logger.info(
         "Fast origin filter found %d packages from '%s'",
@@ -87,51 +83,6 @@ def get_package_names_by_origin_fast(origin_name: str) -> set[str]:
     )
 
     return matching_names
-
-
-def _get_package_origin(package: apt.Package) -> str | None:
-    """Extract origin from package candidate.
-
-    Returns origin name, falling back to label if origin is empty.
-    Returns None if package has no candidate or origins.
-
-    Args:
-        package: APT package object
-
-    Returns:
-        Origin name string, or None if unavailable
-    """
-    # Skip packages without candidate version
-    if not hasattr(package, "candidate") or package.candidate is None:
-        return None
-
-    # Get package origins
-    try:
-        origins = package.candidate.origins
-        if not origins:
-            return None
-    except (AttributeError, TypeError):
-        logger.debug("Error getting origins for package %s", package.name)
-        return None
-
-    # Check first origin (typically the primary source)
-    origin_obj = origins[0]
-
-    try:
-        # Get origin and label
-        pkg_origin = getattr(origin_obj, "origin", "") or ""
-        pkg_label = getattr(origin_obj, "label", "") or ""
-
-        # Match on origin, or fall back to label if origin is empty
-        return pkg_origin if pkg_origin else pkg_label
-
-    except (AttributeError, TypeError) as e:
-        logger.debug(
-            "Error checking origin for package %s: %s",
-            package.name,
-            e,
-        )
-        return None
 
 
 def get_packages_by_origin(cache: apt.Cache, origin_name: str) -> list[apt.Package]:

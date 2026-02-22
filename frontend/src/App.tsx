@@ -43,6 +43,7 @@ function AppContent(): React.ReactElement {
         return { route: 'store' };
     });
     const [actionInProgress, setActionInProgress] = useState(false);
+    const [actionProgress, setActionProgress] = useState<{ percentage: number; message: string } | null>(null);
     const [isStoreEditorOpen, setIsStoreEditorOpen] = useState(false);
 
     // Handle store editor save - refresh stores list
@@ -148,10 +149,11 @@ function AppContent(): React.ReactElement {
     const handleInstall = useCallback(
         async (pkg: Package) => {
             setActionInProgress(true);
+            setActionProgress(null);
             try {
                 const { installPackage } = await import('./api');
                 await installPackage(pkg.name, (percentage, message) => {
-                    console.log(`Install progress: ${percentage}% - ${message}`);
+                    setActionProgress({ percentage, message });
                 });
 
                 // Refresh data to get updated package states
@@ -172,10 +174,12 @@ function AppContent(): React.ReactElement {
                         return current;
                     });
                     setActionInProgress(false);
+                    setActionProgress(null);
                 }, 0);
             } catch (error) {
                 console.error('Install failed:', error);
                 setActionInProgress(false);
+                setActionProgress(null);
                 throw error;
             }
         },
@@ -186,10 +190,11 @@ function AppContent(): React.ReactElement {
     const handleUninstall = useCallback(
         async (pkg: Package) => {
             setActionInProgress(true);
+            setActionProgress(null);
             try {
                 const { removePackage } = await import('./api');
                 await removePackage(pkg.name, (percentage, message) => {
-                    console.log(`Remove progress: ${percentage}% - ${message}`);
+                    setActionProgress({ percentage, message });
                 });
 
                 // Refresh data to get updated package states
@@ -211,9 +216,11 @@ function AppContent(): React.ReactElement {
                 );
                 navigateTo(location.path, location.options);
                 setActionInProgress(false);
+                setActionProgress(null);
             } catch (error) {
                 console.error('Remove failed:', error);
                 setActionInProgress(false);
+                setActionProgress(null);
                 throw error;
             }
         },
@@ -253,15 +260,20 @@ function AppContent(): React.ReactElement {
         (filter: 'all' | 'available' | 'installed') => {
             actions.setInstallFilter(filter);
 
-            // Update URL with new filter
+            // Navigate back to list view when changing filter from app details
+            const newRouter: RouterState = state.activeCategory
+                ? { route: 'category', selectedCategory: state.activeCategory }
+                : { route: 'store' };
+            setRouter(newRouter);
+
             const location = buildLocationFromRouter(
-                router,
+                newRouter,
                 state.activeStore ?? undefined,
                 filter
             );
             navigateTo(location.path, location.options);
         },
-        [actions, router, state.activeStore]
+        [actions, state.activeCategory, state.activeStore]
     );
 
     // Handle manual refresh
@@ -287,6 +299,7 @@ function AppContent(): React.ReactElement {
                     onUninstall={handleUninstall}
                     onBack={handleBack}
                     isActionInProgress={actionInProgress}
+                    actionProgress={actionProgress}
                     categoryId={state.activeCategory ?? undefined}
                     categoryLabel={category?.label}
                     onNavigateToCategories={handleNavigateToCategories}
