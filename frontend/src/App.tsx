@@ -253,15 +253,20 @@ function AppContent(): React.ReactElement {
         (filter: 'all' | 'available' | 'installed') => {
             actions.setInstallFilter(filter);
 
-            // Update URL with new filter
+            // Navigate back to list view when changing filter from app details
+            const newRouter: RouterState = state.activeCategory
+                ? { route: 'category', selectedCategory: state.activeCategory }
+                : { route: 'store' };
+            setRouter(newRouter);
+
             const location = buildLocationFromRouter(
-                router,
+                newRouter,
                 state.activeStore ?? undefined,
                 filter
             );
             navigateTo(location.path, location.options);
         },
-        [actions, router, state.activeStore]
+        [actions, state.activeCategory, state.activeStore]
     );
 
     // Handle manual refresh
