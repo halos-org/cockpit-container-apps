@@ -31,6 +31,7 @@ The module displays container apps organized by stores. Each store represents a 
 - Browse apps within a store by category
 - Display app metadata: name, description, icon, version
 - Show installation status (installed, available, upgradable)
+- Show app status badges from `status::*` debtags (e.g., experimental, beta, deprecated)
 
 **Data Source:**
 - Store definitions from YAML configuration files in `/etc/container-apps/stores/`
@@ -59,6 +60,7 @@ Install and uninstall container app packages.
 
 **Behavior:**
 - Installation triggers APT package installation
+- Apps with a `status::*` debtag that has an install warning (e.g., experimental, deprecated) show a confirmation dialog before installation
 - Package post-install scripts handle Docker Compose setup
 - Removal cleans up the container and associated resources
 

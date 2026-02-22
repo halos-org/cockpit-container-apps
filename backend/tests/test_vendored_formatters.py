@@ -81,6 +81,24 @@ class TestFormatPackage:
         result = format_package(mock_apt_package)
         assert result["displayName"] == ""
 
+    def test_format_package_extracts_status(self, mock_apt_package):
+        """Test that status is extracted from status::* debtag."""
+        mock_apt_package.candidate.record = {
+            "Maintainer": "Test <test@example.com>",
+            "Tag": "category::navigation, status::experimental",
+        }
+        result = format_package(mock_apt_package)
+        assert result["status"] == "experimental"
+
+    def test_format_package_status_null_when_absent(self, mock_apt_package):
+        """Test that status is None when no status::* tag."""
+        mock_apt_package.candidate.record = {
+            "Maintainer": "Test <test@example.com>",
+            "Tag": "category::navigation",
+        }
+        result = format_package(mock_apt_package)
+        assert result["status"] is None
+
 
 class TestFormatPackageDetails:
     """Tests for the format_package_details function."""
@@ -119,3 +137,21 @@ class TestFormatPackageDetails:
         }
         result = format_package_details(mock_apt_package)
         assert result["displayName"] == ""
+
+    def test_format_details_extracts_status(self, mock_apt_package):
+        """Test that status is extracted from status::* debtag."""
+        mock_apt_package.candidate.record = {
+            "Maintainer": "Test <test@example.com>",
+            "Tag": "category::navigation, status::experimental",
+        }
+        result = format_package_details(mock_apt_package)
+        assert result["status"] == "experimental"
+
+    def test_format_details_status_null_when_absent(self, mock_apt_package):
+        """Test that status is None when no status::* tag."""
+        mock_apt_package.candidate.record = {
+            "Maintainer": "Test <test@example.com>",
+            "Tag": "category::navigation",
+        }
+        result = format_package_details(mock_apt_package)
+        assert result["status"] is None

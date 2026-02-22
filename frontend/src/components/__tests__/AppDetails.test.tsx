@@ -250,6 +250,155 @@ describe('AppDetails', () => {
         );
         expect(screen.getByRole('progressbar')).toBeInTheDocument();
     });
+
+    it('shows status badge when status is experimental', () => {
+        const experimentalPkg = { ...mockPackage, status: 'experimental' };
+        render(
+            <AppDetails
+                pkg={experimentalPkg}
+                onInstall={vi.fn()}
+                onUninstall={vi.fn()}
+                onBack={vi.fn()}
+            />
+        );
+        // "Experimental" appears in both badge and warning alert title
+        const experimentalElements = screen.getAllByText('Experimental');
+        expect(experimentalElements.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('shows warning alert for uninstalled experimental app', () => {
+        const experimentalPkg = { ...mockPackage, status: 'experimental' };
+        render(
+            <AppDetails
+                pkg={experimentalPkg}
+                onInstall={vi.fn()}
+                onUninstall={vi.fn()}
+                onBack={vi.fn()}
+            />
+        );
+        expect(screen.getByText(/marked as experimental/)).toBeInTheDocument();
+    });
+
+    it('hides warning alert for installed experimental app', () => {
+        const experimentalInstalledPkg = { ...mockPackage, status: 'experimental', installed: true };
+        render(
+            <AppDetails
+                pkg={experimentalInstalledPkg}
+                onInstall={vi.fn()}
+                onUninstall={vi.fn()}
+                onBack={vi.fn()}
+            />
+        );
+        expect(screen.queryByText(/marked as experimental/)).not.toBeInTheDocument();
+    });
+
+    it('does not show status badge or warning when status is absent', () => {
+        render(
+            <AppDetails
+                pkg={mockPackage}
+                onInstall={vi.fn()}
+                onUninstall={vi.fn()}
+                onBack={vi.fn()}
+            />
+        );
+        expect(screen.queryByText('Experimental')).not.toBeInTheDocument();
+        expect(screen.queryByText(/marked as experimental/)).not.toBeInTheDocument();
+    });
+
+    it('shows confirmation dialog when installing experimental app', async () => {
+        const handleInstall = vi.fn();
+        const experimentalPkg = { ...mockPackage, status: 'experimental' };
+        render(
+            <AppDetails
+                pkg={experimentalPkg}
+                onInstall={handleInstall}
+                onUninstall={vi.fn()}
+                onBack={vi.fn()}
+            />
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: /install/i }));
+
+        // Dialog should appear, onInstall should NOT have been called
+        expect(handleInstall).not.toHaveBeenCalled();
+        expect(screen.getByText('Install anyway')).toBeInTheDocument();
+    });
+
+    it('proceeds with install after confirming in dialog', async () => {
+        const handleInstall = vi.fn();
+        const experimentalPkg = { ...mockPackage, status: 'experimental' };
+        render(
+            <AppDetails
+                pkg={experimentalPkg}
+                onInstall={handleInstall}
+                onUninstall={vi.fn()}
+                onBack={vi.fn()}
+            />
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: /install/i }));
+        await userEvent.click(screen.getByText('Install anyway'));
+
+        expect(handleInstall).toHaveBeenCalledWith(experimentalPkg);
+    });
+
+    it('does not install when cancelling confirmation dialog', async () => {
+        const handleInstall = vi.fn();
+        const experimentalPkg = { ...mockPackage, status: 'experimental' };
+        render(
+            <AppDetails
+                pkg={experimentalPkg}
+                onInstall={handleInstall}
+                onUninstall={vi.fn()}
+                onBack={vi.fn()}
+            />
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: /install/i }));
+        // Click Cancel in the dialog
+        const cancelButtons = screen.getAllByText('Cancel');
+        await userEvent.click(cancelButtons[cancelButtons.length - 1]);
+
+        expect(handleInstall).not.toHaveBeenCalled();
+    });
+
+    it('shows deprecated badge for deprecated status', () => {
+        const deprecatedPkg = { ...mockPackage, status: 'deprecated' };
+        render(
+            <AppDetails
+                pkg={deprecatedPkg}
+                onInstall={vi.fn()}
+                onUninstall={vi.fn()}
+                onBack={vi.fn()}
+            />
+        );
+        const deprecatedElements = screen.getAllByText('Deprecated');
+        expect(deprecatedElements.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('does not show confirmation dialog for update of experimental app', async () => {
+        const handleInstall = vi.fn();
+        const experimentalInstalledPkg = {
+            ...mockPackage,
+            status: 'experimental',
+            installed: true,
+            upgradable: true,
+        };
+        render(
+            <AppDetails
+                pkg={experimentalInstalledPkg}
+                onInstall={handleInstall}
+                onUninstall={vi.fn()}
+                onBack={vi.fn()}
+            />
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: /update/i }));
+
+        // Update should proceed directly without confirmation
+        expect(handleInstall).toHaveBeenCalledWith(experimentalInstalledPkg);
+        expect(screen.queryByText('Install anyway')).not.toBeInTheDocument();
+    });
 });
 
 describe('AppDetails - Configuration Integration', () => {

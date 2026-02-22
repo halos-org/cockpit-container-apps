@@ -94,4 +94,23 @@ describe('AppCard', () => {
         render(<AppCard pkg={pkgWithDisplayName} onSelect={vi.fn()} />);
         expect(screen.getByRole('button')).toHaveAccessibleName(/Signal K Server/);
     });
+
+    it('shows status badge when status is experimental', () => {
+        const experimentalPkg = { ...mockPackage, status: 'experimental' };
+        render(<AppCard pkg={experimentalPkg} onSelect={vi.fn()} />);
+        expect(screen.getByText('Experimental')).toBeInTheDocument();
+    });
+
+    it('does not show status badge when status is null', () => {
+        const pkgNoStatus = { ...mockPackage, status: null };
+        render(<AppCard pkg={pkgNoStatus} onSelect={vi.fn()} />);
+        expect(screen.queryByText('Experimental')).not.toBeInTheDocument();
+    });
+
+    it('does not show status badge when status is undefined', () => {
+        render(<AppCard pkg={mockPackage} onSelect={vi.fn()} />);
+        expect(screen.queryByText('Experimental')).not.toBeInTheDocument();
+        expect(screen.queryByText('Beta')).not.toBeInTheDocument();
+        expect(screen.queryByText('Deprecated')).not.toBeInTheDocument();
+    });
 });

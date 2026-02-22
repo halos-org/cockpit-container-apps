@@ -19,6 +19,10 @@ import {
     Flex,
     FlexItem,
     Label,
+    Modal,
+    ModalBody,
+    ModalFooter,
+    ModalHeader,
     PageSection,
     Progress,
     ProgressSize,
@@ -29,6 +33,7 @@ import { CubeIcon } from '@patternfly/react-icons';
 import React, { useEffect, useState } from 'react';
 import { formatErrorMessage, getConfig, getConfigSchema, setConfig } from '../api';
 import type { ConfigSchema, ConfigValues, Package } from '../api/types';
+import { getStatusConfig } from '../utils/appStatus';
 import { BreadcrumbNav } from './BreadcrumbNav';
 import { ConfigForm } from './ConfigForm';
 import { ServiceLog } from './ServiceLog';
@@ -68,6 +73,18 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
     onNavigateToCategories,
     onNavigateToCategory,
 }) => {
+    // Status badge and install confirmation
+    const statusConfig = getStatusConfig(pkg.status);
+    const [showInstallConfirm, setShowInstallConfirm] = useState(false);
+
+    const handleInstallClick = () => {
+        if (statusConfig?.installWarning && !pkg.installed) {
+            setShowInstallConfirm(true);
+        } else {
+            onInstall(pkg);
+        }
+    };
+
     // Configuration state
     const [configSchema, setConfigSchema] = useState<ConfigSchema | null>(null);
     const [config, setConfigState] = useState<ConfigValues>({});
@@ -197,6 +214,13 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
                                         </Label>
                                     </FlexItem>
                                 )}
+                                {statusConfig && (
+                                    <FlexItem>
+                                        <Label color={statusConfig.color} isCompact>
+                                            {statusConfig.label}
+                                        </Label>
+                                    </FlexItem>
+                                )}
                             </Flex>
                         </FlexItem>
 
@@ -212,7 +236,7 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
                                     <FlexItem>
                                         <Button
                                             variant="primary"
-                                            onClick={() => onInstall(pkg)}
+                                            onClick={handleInstallClick}
                                             isDisabled={isActionInProgress}
                                         >
                                             Install
@@ -258,6 +282,15 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
                     </FlexItem>
                 )}
 
+                {/* Status warning — only shown pre-install */}
+                {statusConfig?.installWarning && !pkg.installed && (
+                    <FlexItem>
+                        <Alert variant="warning" title={statusConfig.label} isInline>
+                            {statusConfig.installWarning}
+                        </Alert>
+                    </FlexItem>
+                )}
+
                 {/* Action progress bar */}
                 {isActionInProgress && actionProgress && (
                     <FlexItem>
@@ -296,7 +329,7 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
                                     </DescriptionListDescription>
                                 </DescriptionListGroup>
                                 <DescriptionListGroup>
-                                    <DescriptionListTerm>Status</DescriptionListTerm>
+                                    <DescriptionListTerm>Installation status</DescriptionListTerm>
                                     <DescriptionListDescription>
                                         {pkg.installed
                                             ? pkg.upgradable
@@ -349,6 +382,37 @@ export const AppDetails: React.FC<AppDetailsProps> = ({
                     </FlexItem>
                 )}
             </Flex>
+
+            {/* Install confirmation modal for status-flagged apps */}
+            {statusConfig?.installWarning && (
+                <Modal
+                    isOpen={showInstallConfirm}
+                    onClose={() => setShowInstallConfirm(false)}
+                    aria-label={`Confirm installation of ${pkg.displayName || pkg.name}`}
+                    variant="small"
+                >
+                    <ModalHeader title={`Install ${pkg.displayName || pkg.name}?`} />
+                    <ModalBody>
+                        <Alert variant="warning" title={statusConfig.label} isInline>
+                            {statusConfig.installWarning}
+                        </Alert>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button
+                            variant="primary"
+                            onClick={() => {
+                                setShowInstallConfirm(false);
+                                onInstall(pkg);
+                            }}
+                        >
+                            Install anyway
+                        </Button>
+                        <Button variant="link" onClick={() => setShowInstallConfirm(false)}>
+                            Cancel
+                        </Button>
+                    </ModalFooter>
+                </Modal>
+            )}
         </PageSection>
     );
 };

@@ -28,6 +28,7 @@ Field Mappings:
         - installed: Boolean installation status
         - section: Debian section (e.g., "web", "python")
         - categories: List of category tags (container-apps extension)
+        - status: Status value from status::* debtag (or null)
 
     Package (detail view):
         - All list view fields plus:
@@ -49,7 +50,10 @@ Field Mappings:
 """
 
 import json
+import logging
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 def to_json(data: Any) -> str:
@@ -99,6 +103,16 @@ def format_package(pkg: Any) -> dict[str, Any]:
     display_names = get_tags_by_facet(pkg, "x-display-name")
     display_name = display_names[0] if display_names else ""
 
+    # Extract status from debtags (e.g., "experimental", "beta", "deprecated")
+    statuses = get_tags_by_facet(pkg, "status")
+    if len(statuses) > 1:
+        logger.warning(
+            "Package %s has multiple status tags: %s; using first",
+            pkg.name,
+            statuses,
+        )
+    status = statuses[0] if statuses else None
+
     return {
         "name": pkg.name,
         "displayName": display_name,
@@ -107,6 +121,7 @@ def format_package(pkg: Any) -> dict[str, Any]:
         "installed": pkg.is_installed,
         "section": section,
         "categories": categories,  # Container-apps extension
+        "status": status,
     }
 
 
@@ -133,6 +148,16 @@ def format_package_details(pkg: Any) -> dict[str, Any]:
     display_names = get_tags_by_facet(pkg, "x-display-name")
     display_name = display_names[0] if display_names else ""
 
+    # Extract status from debtags
+    statuses = get_tags_by_facet(pkg, "status")
+    if len(statuses) > 1:
+        logger.warning(
+            "Package %s has multiple status tags: %s; using first",
+            pkg.name,
+            statuses,
+        )
+    status = statuses[0] if statuses else None
+
     # Basic information
     result: dict[str, Any] = {
         "name": pkg.name,
@@ -143,6 +168,7 @@ def format_package_details(pkg: Any) -> dict[str, Any]:
         "installed": pkg.is_installed,
         "installedVersion": installed_version.version if installed_version else None,
         "candidateVersion": candidate.version if candidate else None,
+        "status": status,
     }
 
     # Optional fields from candidate version

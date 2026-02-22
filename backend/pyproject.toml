@@ -1,6 +1,6 @@
 [project]
 name = "cockpit-container-apps"
-version = "0.1.8"
+version = "0.2.0"
 description = "Container app management backend for Cockpit"
 readme = "README.md"
 requires-python = ">=3.11"
