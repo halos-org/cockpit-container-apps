@@ -125,7 +125,6 @@ export const ServiceLog: React.FC<ServiceLogProps> = ({
     const [entries, setEntries] = useState<LogEntry[]>([]);
     const [isExpanded, setIsExpanded] = useState(initialExpanded);
     const [error, setError] = useState<string | null>(null);
-    const logEndRef = useRef<HTMLDivElement>(null);
     const streamRef = useRef<JournalStreamHandle | null>(null);
     const shouldAutoScroll = useRef(true);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -139,8 +138,8 @@ export const ServiceLog: React.FC<ServiceLogProps> = ({
     }, []);
 
     useEffect(() => {
-        if (shouldAutoScroll.current && logEndRef.current) {
-            logEndRef.current.scrollIntoView({ block: 'end' });
+        if (shouldAutoScroll.current && containerRef.current) {
+            containerRef.current.scrollTop = containerRef.current.scrollHeight;
         }
     }, [entries]);
 
@@ -224,7 +223,6 @@ export const ServiceLog: React.FC<ServiceLogProps> = ({
                         ) : (
                             entries.map((entry) => <AnsiLine key={entry.id} text={entry.text} />)
                         )}
-                        <div ref={logEndRef} />
                     </div>
                 </CardBody>
             )}
