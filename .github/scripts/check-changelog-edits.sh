@@ -29,7 +29,7 @@ if [[ -n "$CHANGELOG_FILES" ]]; then
     echo ""
     echo "Solution: Use './run bumpversion [patch|minor|major]' which:"
     echo "  1. Updates VERSION file"
-    echo "  2. Uses dch to update debian/changelog with correct dates"
+    echo "  2. Updates backend/pyproject.toml and frontend/package.json"
     echo "  3. Commits the changes"
     echo ""
     echo "If you need to bypass this check (e.g., fixing a changelog):"
