@@ -14,6 +14,7 @@ from cockpit_container_apps.utils.config_utils import (
     _validate_package_name,
     get_config_file_path,
     get_config_schema_path,
+    parse_env_file,
     validate_config_value,
     write_env_file,
 )
@@ -73,6 +74,26 @@ def execute(package: str, config: dict[str, str]) -> dict[str, Any]:
                 if field_id:
                     field_map[field_id] = field
 
+        # Identify readonly fields
+        readonly_fields = {
+            field_id
+            for field_id, field in field_map.items()
+            if field.get("readonly", False)
+        }
+
+        # Strip readonly fields from input (frontend shouldn't send them,
+        # but be defensive)
+        config = {k: v for k, v in config.items() if k not in readonly_fields}
+
+        # Preserve existing readonly field values from the env file so they
+        # aren't lost when write_env_file overwrites the file
+        if readonly_fields:
+            config_path = get_config_file_path(package)
+            existing = parse_env_file(config_path)
+            for field_id in readonly_fields:
+                if field_id in existing:
+                    config[field_id] = existing[field_id]
+
         # Validate all config keys are known
         unknown_keys = set(config.keys()) - set(field_map.keys())
         if unknown_keys:
@@ -81,11 +102,11 @@ def execute(package: str, config: dict[str, str]) -> dict[str, Any]:
                 "error": f"Unknown configuration field(s): {', '.join(unknown_keys)}",
             }
 
-        # Check all required fields are present
+        # Check all required non-readonly fields are present
         required_fields = [
             field_id
             for field_id, field in field_map.items()
-            if field.get("required", False)
+            if field.get("required", False) and not field.get("readonly", False)
         ]
         missing_required = set(required_fields) - set(config.keys())
         if missing_required:

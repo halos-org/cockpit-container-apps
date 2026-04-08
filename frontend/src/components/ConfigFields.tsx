@@ -44,6 +44,7 @@ export function StringField({ field, value, onChange, error }: FieldProps) {
                 value={value}
                 onChange={(_event, val) => onChange(field.id, val)}
                 isRequired={field.required}
+                isDisabled={field.readonly}
                 validated={error ? 'error' : 'default'}
                 aria-label={field.label}
             />
@@ -77,6 +78,7 @@ export function IntegerField({ field, value, onChange, error }: FieldProps) {
                 value={value}
                 onChange={(_event, val) => onChange(field.id, val)}
                 isRequired={field.required}
+                isDisabled={field.readonly}
                 validated={error ? 'error' : 'default'}
                 aria-label={field.label}
                 min={field.min}
@@ -114,6 +116,7 @@ export function BooleanField({ field, value, onChange, error }: FieldProps) {
                 id={field.id}
                 aria-label={field.label}
                 isChecked={isChecked}
+                isDisabled={field.readonly}
                 onChange={(_event, checked) => onChange(field.id, checked ? 'true' : 'false')}
             />
             {error && (
@@ -160,6 +163,7 @@ export function EnumField({ field, value, onChange, error }: FieldProps) {
                         ref={toggleRef}
                         onClick={() => setIsOpen(!isOpen)}
                         isExpanded={isOpen}
+                        isDisabled={field.readonly}
                         style={{ width: '100%' }}
                     >
                         {selectedLabel}
@@ -204,6 +208,7 @@ export function PasswordField({ field, value, onChange, error }: FieldProps) {
                 value={value}
                 onChange={(_event, val) => onChange(field.id, val)}
                 isRequired={field.required}
+                isDisabled={field.readonly}
                 validated={error ? 'error' : 'default'}
                 aria-label={field.label}
             />
@@ -237,6 +242,7 @@ export function PathField({ field, value, onChange, error }: FieldProps) {
                 value={value}
                 onChange={(_event, val) => onChange(field.id, val)}
                 isRequired={field.required}
+                isDisabled={field.readonly}
                 validated={error ? 'error' : 'default'}
                 aria-label={field.label}
             />

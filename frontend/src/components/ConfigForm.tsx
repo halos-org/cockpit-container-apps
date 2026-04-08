@@ -130,6 +130,7 @@ export function ConfigForm({
 
         schema.groups.forEach((group) => {
             group.fields.forEach((field) => {
+                if (field.readonly) return;
                 const value = formValues[field.id] || '';
                 const error = validateField(field, value);
                 if (error) {
@@ -165,18 +166,22 @@ export function ConfigForm({
             return;
         }
 
-        // Only send values for fields defined in the schema
-        // Filter out any extra fields that might be in formValues (e.g., from env.defaults)
+        // Only send values for mutable fields defined in the schema
+        // Filter out readonly fields and any extra fields from env.defaults
         const schemaFieldIds = new Set<string>();
+        const readonlyFieldIds = new Set<string>();
         schema.groups.forEach((group) => {
             group.fields.forEach((field) => {
                 schemaFieldIds.add(field.id);
+                if (field.readonly) {
+                    readonlyFieldIds.add(field.id);
+                }
             });
         });
 
         const filteredConfig: ConfigValues = {};
         for (const [key, value] of Object.entries(formValues)) {
-            if (schemaFieldIds.has(key)) {
+            if (schemaFieldIds.has(key) && !readonlyFieldIds.has(key)) {
                 filteredConfig[key] = value;
             }
         }
