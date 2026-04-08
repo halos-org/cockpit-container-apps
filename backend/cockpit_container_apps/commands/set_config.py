@@ -73,6 +73,17 @@ def execute(package: str, config: dict[str, str]) -> dict[str, Any]:
                 if field_id:
                     field_map[field_id] = field
 
+        # Identify readonly fields
+        readonly_fields = {
+            field_id
+            for field_id, field in field_map.items()
+            if field.get("readonly", False)
+        }
+
+        # Strip readonly fields from input (frontend shouldn't send them,
+        # but be defensive)
+        config = {k: v for k, v in config.items() if k not in readonly_fields}
+
         # Validate all config keys are known
         unknown_keys = set(config.keys()) - set(field_map.keys())
         if unknown_keys:
@@ -81,11 +92,11 @@ def execute(package: str, config: dict[str, str]) -> dict[str, Any]:
                 "error": f"Unknown configuration field(s): {', '.join(unknown_keys)}",
             }
 
-        # Check all required fields are present
+        # Check all required non-readonly fields are present
         required_fields = [
             field_id
             for field_id, field in field_map.items()
-            if field.get("required", False)
+            if field.get("required", False) and not field.get("readonly", False)
         ]
         missing_required = set(required_fields) - set(config.keys())
         if missing_required:

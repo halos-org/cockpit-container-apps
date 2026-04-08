@@ -184,6 +184,7 @@ export interface ConfigField {
     description?: string;
     default?: string;
     required?: boolean;
+    readonly?: boolean;
     help?: string;
     // Type-specific constraints
     min?: number; // For integer type
