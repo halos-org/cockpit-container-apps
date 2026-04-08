@@ -669,3 +669,101 @@ groups:
         # But with warning
         assert "warning" in result
         assert "timed out" in result["warning"]
+
+    def test_set_config_preserves_readonly_fields(self):
+        """Test that readonly field values in env file are preserved on save."""
+        schema_content = """version: "1.0"
+groups:
+  - id: general
+    label: General Settings
+    fields:
+      - id: PORT
+        type: integer
+        label: Port
+        required: true
+      - id: API_TOKEN
+        type: string
+        label: API Token
+        required: true
+        readonly: true
+"""
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yml") as f:
+            f.write(schema_content)
+            f.flush()
+            schema_path = Path(f.name)
+
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".env") as f:
+            # Pre-populate env file with both writable and readonly values
+            f.write("PORT=3000\nAPI_TOKEN=secret-auto-generated-token\n")
+            f.flush()
+            config_path = Path(f.name)
+
+        with patch(
+            "cockpit_container_apps.commands.set_config.get_config_schema_path",
+            return_value=schema_path,
+        ), patch(
+            "cockpit_container_apps.commands.set_config.get_config_file_path",
+            return_value=config_path,
+        ), patch("subprocess.run") as mock_run:
+            mock_run.return_value = Mock(returncode=0, stderr="")
+
+            # Frontend only sends writable fields (no API_TOKEN)
+            result = set_config.execute(
+                package="signalk",
+                config={"PORT": "8080"},
+            )
+
+        # Read saved file to verify readonly value was preserved
+        saved_content = config_path.read_text()
+        schema_path.unlink()
+        config_path.unlink()
+
+        assert result["success"] is True
+        assert "API_TOKEN=secret-auto-generated-token" in saved_content
+        assert "PORT=8080" in saved_content
+
+    def test_set_config_readonly_field_not_required(self):
+        """Test that readonly fields are not enforced as required."""
+        schema_content = """version: "1.0"
+groups:
+  - id: general
+    label: General Settings
+    fields:
+      - id: PORT
+        type: integer
+        label: Port
+        required: true
+      - id: API_TOKEN
+        type: string
+        label: API Token
+        required: true
+        readonly: true
+"""
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yml") as f:
+            f.write(schema_content)
+            f.flush()
+            schema_path = Path(f.name)
+
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".env") as f:
+            config_path = Path(f.name)
+
+        with patch(
+            "cockpit_container_apps.commands.set_config.get_config_schema_path",
+            return_value=schema_path,
+        ), patch(
+            "cockpit_container_apps.commands.set_config.get_config_file_path",
+            return_value=config_path,
+        ), patch("subprocess.run") as mock_run:
+            mock_run.return_value = Mock(returncode=0, stderr="")
+
+            # Only send writable field -- readonly required field is absent
+            result = set_config.execute(
+                package="signalk",
+                config={"PORT": "8080"},
+            )
+
+        schema_path.unlink()
+        config_path.unlink()
+
+        # Should succeed -- readonly+required field not enforced
+        assert result["success"] is True
